@@ -112,6 +112,26 @@ async function runHeavyStartup() {
       .then(({ startQuotaAutoPing }) => startQuotaAutoPing())
       .catch((e) => console.log("[AutoPing] scheduler start failed:", e.message));
   }
+
+  // Wire single-use RT DB re-read into open-sse refresh gate (before any refresh).
+  import("open-sse/services/oauthCredentialManager.js")
+    .then(async ({ setConnectionLoader }) => {
+      const { getProviderConnectionById } = await import("@/lib/localDb");
+      setConnectionLoader((id) => getProviderConnectionById(id).catch(() => null));
+    })
+    .catch((e) => console.log("[OAuth] connectionLoader wire failed:", e.message));
+
+  // Keep multi-account OAuth pools (grok-cli) warm — request-path refresh
+  // only covers the selected account under round-robin.
+  import("@/shared/services/oauthTokenWarm")
+    .then(({ startOAuthTokenWarm }) => startOAuthTokenWarm())
+    .catch((e) => console.log("[OAuthWarm] scheduler start failed:", e.message));
+
+  // Qoder job tokens (jt-) live 24h — rotate every 30 min via jrt- so the
+  // pool never dies mid-week. Fail-open; PAT-bound, not machine-bound.
+  import("@/shared/services/qoderTokenRefresh")
+    .then(({ startQoderTokenRefresh }) => startQoderTokenRefresh())
+    .catch((e) => console.log("[QoderRefresh] scheduler start failed:", e.message));
 }
 
 function hasQuotaAutoPingEnabled(settings) {

@@ -1,10 +1,10 @@
 /**
  * QoderExecutor — sends OpenAI-format chat requests to Qoder's COSY-signed
- * inference endpoint at api3.qoder.sh, then unwraps Qoder's `{statusCodeValue,
+ * inference endpoint at api2.qoder.sh, then unwraps Qoder's `{statusCodeValue,
  * body}` SSE envelope back into plain OpenAI SSE for the rest of the pipeline.
  *
  * Differences vs the previous placeholder:
- *   - URL is api3.qoder.sh/algo/api/v2/service/pro/sse/agent_chat_generation
+ *   - URL is api2.qoder.sh/algo/api/v2/service/pro/sse/agent_chat_generation
  *     with `&Encode=1` so we can ship the body through the WAF-bypass
  *     encoder.
  *   - Authentication is COSY (RSA + AES + MD5 + ~17 Cosy-* headers), not
@@ -20,7 +20,6 @@
  *     different model upstream, so a missing entry is a hard error.
  */
 
-import { qoderEncodeBody } from "../shared/qoder/encoding.js";
 import { buildCosyHeaders } from "../shared/qoder/cosy.js";
 import { v4 as uuidv4 } from "uuid";
 import { createHash } from "crypto";
@@ -171,15 +170,15 @@ async function buildQoderRequestBody({ model, body, credentials, log, proxyOptio
       chat_record_id: recordId,
       session_id: sessionId,
       stream: true,
-      chat_task: "FREE_INPUT",
+      chat_task: "FREE_INPUT", // MUST match binary exactly — custom chat_task fails agent_router
       is_reply: true,
       is_retry: false,
       source: 1,
       version: "3",
-      session_type: "qodercli",
-      agent_id: "agent_common",
-      task_id: "common",
-      code_language: "",
+      session_type: "qodercli", // MUST match binary exactly — upstream router rejects custom values
+      agent_id: "agent_common", // MUST match binary exactly — agent_router flow nodes depend on this
+      task_id: "common",        // MUST match binary exactly
+      code_language: "",        // Empty like binary
       chat_prompt: "",
       image_urls: null,
       aliyun_user_type: "",
@@ -214,15 +213,62 @@ async function buildQoderRequestBody({ model, body, credentials, log, proxyOptio
 }
 
 /**
- * Wrap the upstream's `{statusCodeValue, body}` SSE envelope into plain
- * OpenAI SSE chunks the rest of the chatCore pipeline understands.
+ * Peek the first `data:` SSE envelope from an upstream response WITHOUT
+ * consuming the stream. Uses body.tee() so one branch is read for detection
+ * and the other branch is returned untouched for the caller to pipe through
+ * wrapQoderSSE.
  *
- * Each upstream line looks like:
- *   data: {"statusCodeValue":200,"body":"{\"choices\":[{\"delta\":{...}}]}"}
- * The inner body is an OpenAI streaming chunk (or "[DONE]"). We unwrap it
- * and re-emit as `data: <inner>\n\n`. Errors become `data: [DONE]\n\n` plus
- * a synthetic OpenAI error chunk.
+ * @returns {{ response: Response, envelope: object|null }} — response carries
+ *   the untouched body branch; envelope is the parsed first envelope (or null
+ *   when the stream produced no parseable envelope before end).
  */
+async function peekFirstSSEEnvelope(response) {
+  if (!response?.body) return { response, envelope: null };
+  const [peekBranch, passBranch] = response.body.tee();
+  const passResponse = new Response(passBranch, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+  });
+
+  const reader = peekBranch.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let envelope = null;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let nl;
+      while ((nl = buffer.indexOf("\n")) !== -1) {
+        const line = buffer.slice(0, nl).trim();
+        buffer = buffer.slice(nl + 1);
+        if (!line.startsWith("data:")) continue;
+        const data = line.slice(5).trimStart();
+        if (data === "[DONE]") { reader.cancel().catch(() => {}); return { response: passResponse, envelope: null }; }
+        try {
+          const env = JSON.parse(data);
+          if (env && typeof env.statusCodeValue === "number") {
+            // Healthy envelope (200) — no error to surface. Cancel read and
+            // report null so callers forward the stream untouched.
+            if (env.statusCodeValue === 200) {
+              reader.cancel().catch(() => {});
+              return { response: passResponse, envelope: null };
+            }
+            envelope = env;
+            reader.cancel().catch(() => {});
+            return { response: passResponse, envelope };
+          }
+        } catch { /* non-JSON data line — keep scanning */ }
+      }
+    }
+  } catch { /* stream error — treat as no envelope */ } finally {
+    reader.releaseLock();
+  }
+  return { response: passResponse, envelope: null };
+}
+
 function wrapQoderSSE(response, model) {
   if (!response.ok || !response.body) return response;
 
@@ -370,14 +416,14 @@ export class QoderExecutor extends BaseExecutor {
       return { response: fakeResp, url, headers: {}, transformedBody: body };
     }
 
-    const plainBody = Buffer.from(JSON.stringify(payload), "utf8");
-    const encodedBodyStr = qoderEncodeBody(plainBody);
-    const encodedBodyBuf = Buffer.from(encodedBodyStr, "latin1");
+    // Binary (1.1.14) sends the RAW JSON body for chat — no qoderEncodeBody.
+    // Raw body + streaming headers matching opencode executor pattern.
+    const sendBuf = Buffer.from(JSON.stringify(payload), "utf8");
 
     let cosyHeaders;
     try {
       cosyHeaders = buildCosyHeaders(
-        encodedBodyBuf,
+        sendBuf,
         url,
         {
           userId: psd.userId,
@@ -401,29 +447,96 @@ export class QoderExecutor extends BaseExecutor {
     const headers = {
       "Content-Type": "application/json",
       Accept: "text/event-stream",
-      "Cache-Control": "no-cache",
+        // Optimized for streaming + retry like opencode provider
+      "Connection": "keep-alive",  // Connection reuse
+      "Cache-Control": "no-cache", // Fresh responses
       "X-Model-Key": qoderKey,
       "X-Model-Source": modelSource,
-      // gzip triggers signature validation on Qoder's CDN; force identity.
-      "Accept-Encoding": "identity",
+      "Accept-Encoding": "identity", // No gzip (signature validation)
       ...cosyHeaders,
     };
 
-    // Abort if upstream doesn't return response headers within connect timeout.
-    const timeoutMs = this.config?.timeoutMs || FETCH_CONNECT_TIMEOUT_MS;
-    const connectCtrl = new AbortController();
-    const connectTimer = setTimeout(() => connectCtrl.abort(new Error("fetch connect timeout")), timeoutMs);
-    const mergedSignal = signal ? AbortSignal.any([signal, connectCtrl.signal]) : connectCtrl.signal;
+    // Connect timeout + stall timeout with retry logic matching binary behavior
+    const configTimeoutMs = this.config?.timeoutMs || FETCH_CONNECT_TIMEOUT_MS;
+    const stallTimeoutMs = this.config?.stallTimeoutMs || 120000; // 120s stall detection
+    const enableRetry = !!this.config?.retryOnTimeout;
+    const maxRetryAttempts = this.config?.maxRetryAttempts ?? 2;
 
-    let response;
-    try {
-      response = await proxyAwareFetch(
-        url,
-        { method: "POST", headers, body: encodedBodyBuf, signal: mergedSignal },
-        proxyOptions,
-      );
-    } finally {
-      clearTimeout(connectTimer);
+    let attempt = 0;
+    while (true) {
+      attempt += 1;
+
+      const isConnectAttempt = attempt === 1;
+      const currentTimeoutMs = isConnectAttempt ? configTimeoutMs : stallTimeoutMs;
+
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(new Error(isConnectAttempt ? "connect timeout" : "stall timeout")), currentTimeoutMs);
+      const mergedSignal = signal
+        ? AbortSignal.any([signal, isConnectAttempt ? ctrl.signal : AbortSignal.timeout(Infinity)])
+        : (isConnectAttempt ? ctrl.signal : AbortSignal.timeout(Infinity));
+
+      try {
+        const response = await proxyAwareFetch(url, {
+          method: "POST",
+          headers,
+          body: sendBuf,
+          signal: mergedSignal,
+        });
+        clearTimeout(timer);
+
+        // Check for recoverable errors (408/429/5xx) — retry if attempts remaining
+        const statusCode = response.status;
+        const isRecoverable = statusCode === 408 || statusCode === 429 || (statusCode >= 500 && statusCode < 600);
+
+        if (!response.ok && !isRecoverable) {
+          // Non-recoverable (auth failure) — pass through
+          return { response, url, headers, transformedBody: payload };
+        }
+
+        if (!response.ok) {
+          log.warn(`QODER`, `qoder | attempt ${attempt}/${maxRetryAttempts} failed (status ${statusCode})`);
+          if (attempt >= maxRetryAttempts || !enableRetry) {
+            return { response, url, headers, transformedBody: payload };
+          }
+          // Retry after exponential backoff
+          await new Promise(r => setTimeout(r, 1000 * attempt));
+          continue;
+        }
+
+        // Success or wrapped content — proceed
+        const { response: peekedResponse, envelope } = await peekFirstSSEEnvelope(response);
+        if (envelope && envelope.statusCodeValue !== 200) {
+          const msg = typeof envelope.body === "string" ? envelope.body : `qoder upstream ${envelope.statusCodeValue}`;
+          const errResp = new Response(
+            JSON.stringify({ error: { message: msg, code: String(envelope.statusCodeValue) } }),
+            { status: Number(envelope.statusCodeValue) >= 400 ? Number(envelope.statusCodeValue) : 502, headers: { "Content-Type": "application/json" } },
+          );
+          return { response: errResp, url, headers, transformedBody: payload };
+        }
+
+        const wrapped = wrapQoderSSE(peekedResponse, `qoder/${qoderKey}`);
+        return { response: wrapped, url, headers, transformedBody: payload };
+      } catch (err) {
+        clearTimeout(timer);
+
+        // Timeout/stall error — retry if attempts remaining
+        if (!err.message.includes("timeout") && err.name !== "AbortError") throw err;
+
+        log.warn(`QODER`, `qoder | attempt ${attempt}/${maxRetryAttempts} timeout (${err.message})`);
+
+        if (enableRetry && attempt < maxRetryAttempts) {
+          await new Promise(r => setTimeout(r, 1000 * attempt));
+          continue;
+        }
+
+        // Max retries reached — failover
+        return {
+          response: new Response(JSON.stringify({ error: { message: err.message } }), { status: 504 }),
+          url,
+          headers,
+          transformedBody: payload,
+        };
+      }
     }
 
     if (!response.ok) {
@@ -431,7 +544,23 @@ export class QoderExecutor extends BaseExecutor {
       return { response, url, headers, transformedBody: payload };
     }
 
-    const wrapped = wrapQoderSSE(response, `qoder/${qoderKey}`);
+    // Peek the first upstream SSE chunk. Qoder wraps upstream errors inside
+    // the SSE envelope ({statusCodeValue:403, body:...}) with HTTP 200 — if we
+    // forward that as streamed content, chatCore's `!response.ok` check never
+    // fires and the account is never disabled/rotated. Detect the error
+    // envelope here and surface a real non-ok Response so markAccountUnavailable
+    // sees the 403 and disables the account (fallback to next).
+    const { response: peekedResponse, envelope } = await peekFirstSSEEnvelope(response);
+    if (envelope && envelope.statusCodeValue !== 200) {
+      const msg = typeof envelope.body === "string" ? envelope.body : `qoder upstream ${envelope.statusCodeValue}`;
+      const errResp = new Response(
+        JSON.stringify({ error: { message: msg, code: String(envelope.statusCodeValue) } }),
+        { status: Number(envelope.statusCodeValue) >= 400 ? Number(envelope.statusCodeValue) : 502, headers: { "Content-Type": "application/json" } },
+      );
+      return { response: errResp, url, headers, transformedBody: payload };
+    }
+
+    const wrapped = wrapQoderSSE(peekedResponse, `qoder/${qoderKey}`);
     return { response: wrapped, url, headers, transformedBody: payload };
   }
 
@@ -454,5 +583,6 @@ export default QoderExecutor;
 export const __test__ = {
   normalizeMessages,
   wrapQoderSSE,
+  peekFirstSSEEnvelope,
   buildQoderRequestBody,
 };

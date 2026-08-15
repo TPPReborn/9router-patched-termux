@@ -3,10 +3,106 @@ import { resolveConnectionProxyConfig, pickProxyPoolId } from "@/lib/network/con
 import { formatRetryAfter, checkFallbackError, isModelLockActive, buildModelLockUpdate, getEarliestModelLockUntil } from "open-sse/services/accountFallback.js";
 import { MAX_RATE_LIMIT_COOLDOWN_MS } from "open-sse/config/errorConfig.js";
 import { resolveProviderId, FREE_PROVIDERS } from "@/shared/constants/providers.js";
+import { resolveQoderModels } from "open-sse/services/qoderModels.js";
+import { rateLimitCheck } from "open-sse/utils/rateLimiter.js";
 import * as log from "../utils/logger.js";
 
 // Mutex to prevent race conditions during account selection
 let selectionMutex = Promise.resolve();
+
+// Hard auth / credential death — never pick again until re-auth.
+const AUTH_BROKEN_RE =
+  /invalid_grant|invalid or revoked|token.*revoked|refresh token.*revoked|unauthorized|authentication failed|oauth refresh failed|no access token|no refresh token/i;
+
+// Grok free-tier / subscription exhausted — account unusable for chat until window resets
+// (often hours). Disable so rotation/fill-first skips immediately.
+const ACCOUNT_EXHAUSTED_RE =
+  /free-usage-exhausted|used all the included free usage|out of credits|need a grok subscription|payment required|insufficient.?quota|spending.?limit|subscription:free-usage-exhausted|billing_error/i;
+
+/**
+ * Request/content errors that are NOT account-health signals.
+ * Must never disable the account — only skip for this request (or short model lock).
+ * Example: Grok 400 "This model's maximum prompt length is 500000 but the request contains …"
+ */
+const SKIP_ONLY_CONTENT_RE =
+  /maximum prompt length|prompt length is|context.?length|context limit|input.?length|maximum.?length.?exceeds|request too large|payload too large|token.?limit|too many tokens|message too long/i;
+
+// Provider-specific "this account can't serve this model" — e.g. qoder's
+// per-account catalog missing the requested model key ("model_config for X
+// not yet known"). The account is fine for other models; only this model
+// misses. Skip to the next account, never disable.
+const SKIP_ONLY_MODEL_MISS_RE =
+  /model_config for .* not yet known|model not (yet )?available|model not found|model doesn'?t exist|unknown model|invalid model/i;
+
+/**
+ * True when this upstream failure should only skip the account for this turn
+ * (fallback to next), never isActive=false.
+ *  - 400 + max-prompt / context-length style messages
+ *  - 500 / 502 upstream provider-side; not credential death)
+ *  - 400 + per-account model not in catalog (skip to an account that has it)
+ */
+export function isSkipOnlyRotationError(status, errorText) {
+  const code = Number(status);
+  const err = String(errorText || "");
+  if (code === 500 || code === 502) return true;
+  if (code === 400 && SKIP_ONLY_CONTENT_RE.test(err)) return true;
+  // Even if status is missing/wrapped, content-length messages are never account death.
+  if (err && SKIP_ONLY_CONTENT_RE.test(err)) return true;
+  // Per-account model miss — the account may serve other models fine.
+  if (err && SKIP_ONLY_MODEL_MISS_RE.test(err)) return true;
+  return false;
+}
+
+/**
+ * Permanent / hard failure — must not enter fill-first or round-robin.
+ * Temporary model locks (generic rate-limit) handled via isModelLockActive.
+ * Skip-only lastError/errorCode (400 max-prompt, 500/502) must NOT poison the pool.
+ */
+export function isAuthBrokenConnection(c) {
+  if (!c) return true;
+  if (c.isActive === false) return true;
+  // No usable credential material left
+  if (!c.accessToken && !c.refreshToken && !c.apiKey) return true;
+
+  const code = Number(c.errorCode);
+  const err = String(c.lastError || "");
+
+  // Stale skip-only markers: ignore for pool exclusion (short modelLock still applies).
+  if (isSkipOnlyRotationError(code, err)) {
+    return false;
+  }
+
+  if (c.testStatus === "error") return true;
+  if (code === 401 || code === 403 || code === 402) return true;
+  if (err && AUTH_BROKEN_RE.test(err)) return true;
+  if (err && ACCOUNT_EXHAUSTED_RE.test(err)) return true;
+  // 429 + free-usage / subscription exhausted body (stored as lastError)
+  if (code === 429 && err && ACCOUNT_EXHAUSTED_RE.test(err)) return true;
+  return false;
+}
+
+/** True when this upstream failure should disable the whole account (isActive=0). */
+export function shouldDisableOnBadResponse(status, errorText) {
+  // Content / upstream blips: never disable — only skip + short lock.
+  if (isSkipOnlyRotationError(status, errorText)) return false;
+  const code = Number(status);
+  const err = String(errorText || "");
+  // Qoder credit-drained (code 112 personalCreditsDrainedOut) is a
+  // transient quota state, not credential death — credit can be topped up.
+  // Skip + short cooldown instead of disabling the account permanently.
+  if (code === 403 && /112|personalCreditsDrainedOut|pricingUrl/.test(err)) return false;
+  if (code === 401 || code === 403 || code === 402) return true;
+  if (AUTH_BROKEN_RE.test(err)) return true;
+  if (ACCOUNT_EXHAUSTED_RE.test(err)) return true;
+  // 429 free-usage-exhausted (Grok) — not a short cooldown; disable account
+  if (code === 429 && ACCOUNT_EXHAUSTED_RE.test(err)) return true;
+  return false;
+}
+
+// backward-compatible alias
+function shouldDisableOnAuthError(status, errorText) {
+  return shouldDisableOnBadResponse(status, errorText);
+}
 
 /**
  * Get provider credentials from localDb
@@ -34,6 +130,25 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
 
     // Inject a virtual connection for no-auth free providers (with optional proxy pool from settings)
     if (FREE_PROVIDERS[providerId]?.noAuth) {
+      // Rate-limit gate for noAuth providers (opencode/oc): if the provider
+      // is in backoff cooldown from a recent 429, refuse selection so chatCore
+      // rotates to a different provider instead of burning more quota.
+      const limiterCheck = rateLimitCheck(providerId, {
+        minGapMs: 0,
+        backoff429Ms: 15_000,
+        maxBackoffMs: 60_000,
+      });
+      if (!limiterCheck.allowed) {
+        log.warn("AUTH", `${providerId} | rate-limited (backoff ${Math.round(limiterCheck.waitMs / 1000)}s) — skipping selection`);
+        return {
+          allRateLimited: true,
+          retryAfter: Date.now() + limiterCheck.waitMs,
+          retryAfterHuman: `${Math.round(limiterCheck.waitMs / 1000)}s (rate limit backoff)`,
+          lastError: `Rate limit cooldown (${providerId})`,
+          lastErrorCode: 429,
+        };
+      }
+
       const settings = await getSettings();
       const override = (settings.providerStrategies || {})[providerId] || {};
       const strategy = override.rotateStrategy || "none";
@@ -67,20 +182,82 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
       return null;
     }
 
-    // Filter out model-locked and excluded connections
-    const availableConnections = connections.filter(c => {
+    // Drop bad accounts from rotation immediately; disable so they stay out of pool.
+    // isAuthBrokenConnection treats isActive=false as broken — force-check flags only.
+    const brokenStillActive = connections.filter((c) => {
+      if (c.isActive === false) return false;
+      return isAuthBrokenConnection({ ...c, isActive: true });
+    });
+    for (const c of brokenStillActive) {
+      const reason =
+        c.lastError ||
+        (c.errorCode != null ? `[${c.errorCode}] account marked bad` : null) ||
+        `Bad account (${c.testStatus || "error"})`;
+      log.warn(
+        "AUTH",
+        `${provider} | skip+disable bad account ${c.id?.slice(0, 8)} (${String(reason).slice(0, 120)})`,
+      );
+      // Fire-and-forget — do not block selection on DB write
+      updateProviderConnection(c.id, {
+        isActive: false,
+        testStatus: "error",
+        lastError: reason,
+        lastErrorAt: c.lastErrorAt || new Date().toISOString(),
+        errorCode: c.errorCode != null ? c.errorCode : 401,
+      }).catch(() => {});
+    }
+    const brokenIds = new Set(brokenStillActive.map((c) => c.id));
+
+    // Filter out model-locked, excluded, and bad/disabled connections
+    const availableConnections = connections.filter((c) => {
       if (excludeSet.has(c.id)) return false;
       if (isModelLockActive(c, model)) return false;
+      // Treat as inactive for this pick even if disable write hasn't landed yet
+      if (brokenIds.has(c.id)) return false;
+      if (isAuthBrokenConnection(c)) return false;
       return true;
     });
 
+    // Qoder: pre-flight catalog health check — SORT, don't disable.
+    // Dead/revoked device tokens (upstream 403 code 105) burned the whole
+    // rotation loop one account per request; but a 403 here is often
+    // transient (credit top-up, machine re-bind) — permanent disable from
+    // a preflight sweep destroyed valid accounts. So: live accounts first,
+    // failed ones pushed to the back of THIS pick only. The chatCore loop
+    // then tries live accounts first; a real failure on chat still routes
+    // through markAccountUnavailable (which disables only true credential
+    // death, not credit-drained — qoder code 112 is skip-only).
+    if (providerId === "qoder" && availableConnections.length > 1) {
+      const [healthy, sick] = [[], []];
+      for (const c of availableConnections) {
+        try {
+          const cat = await resolveQoderModels(c, { signal: null });
+          if (cat && cat.ok === false) {
+            sick.push(c);
+            log.warn("AUTH", `qoder | preflight sick (back of pool) ${c.id?.slice(0, 8)} [${cat.status}]`);
+          } else {
+            healthy.push(c);
+          }
+        } catch {
+          // Network blip — treat as healthy so we don't starve the pool.
+          healthy.push(c);
+        }
+      }
+      availableConnections.length = 0;
+      availableConnections.push(...healthy, ...sick);
+    }
+
     log.debug("AUTH", `${provider} | available: ${availableConnections.length}/${connections.length}`);
-    connections.forEach(c => {
+    connections.forEach((c) => {
       const excluded = excludeSet.has(c.id);
       const locked = isModelLockActive(c, model);
-      if (excluded || locked) {
+      const broken = brokenIds.has(c.id) || isAuthBrokenConnection(c);
+      if (excluded || locked || broken) {
         const lockUntil = getEarliestModelLockUntil(c);
-        log.debug("AUTH", `  → ${c.id?.slice(0, 8)} | ${excluded ? "excluded" : ""} ${locked ? `modelLocked(${model}) until ${lockUntil}` : ""}`);
+        log.debug(
+          "AUTH",
+          `  → ${c.id?.slice(0, 8)} | ${excluded ? "excluded " : ""}${locked ? `modelLocked(${model}) until ${lockUntil} ` : ""}${broken ? "bad/disabled" : ""}`,
+        );
       }
     });
 
@@ -224,27 +401,57 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
   }
   if (!shouldFallback) return { shouldFallback: false, cooldownMs: 0 };
 
-  const reason = typeof errorText === "string" ? errorText.slice(0, 100) : "Provider error";
+  // Prefer full-ish message for free-usage-exhausted detection / UI (cap length)
+  const reasonRaw =
+    typeof errorText === "string"
+      ? errorText
+      : errorText != null
+        ? JSON.stringify(errorText)
+        : "Provider error";
+  const reason = reasonRaw.slice(0, 500);
   const lockUpdate = buildModelLockUpdate(model, cooldownMs);
+  // Bad account (auth / free-usage-exhausted / payment): disable so rotation skips forever until re-enable.
+  // Skip-only (400 max-prompt, 500/502): never disable — short model lock + fallback only.
+  const skipOnly = isSkipOnlyRotationError(status, reasonRaw);
+  const disableAccount = !skipOnly && shouldDisableOnBadResponse(status, reasonRaw);
 
+  // For skip-only: still record lastError briefly for the FAIL log, but keep testStatus
+  // as "unavailable" (not "error") so isAuthBrokenConnection does not permanently drop us.
+  // clearAccountErrorAfterSkip (chat.js) wipes lastError once we move to the next account.
   await updateProviderConnection(connectionId, {
     ...lockUpdate,
-    testStatus: "unavailable",
+    ...(disableAccount
+      ? {
+          isActive: false,
+          testStatus: "error",
+        }
+      : {
+          testStatus: "unavailable",
+        }),
     lastError: reason,
     errorCode: status,
     lastErrorAt: new Date().toISOString(),
-    backoffLevel: newBackoffLevel ?? backoffLevel
+    backoffLevel: newBackoffLevel ?? backoffLevel,
   });
 
   const lockKey = Object.keys(lockUpdate)[0];
   const connName = conn?.displayName || conn?.name || conn?.email || connectionId.slice(0, 8);
-  log.warn("AUTH", `${connName} locked ${lockKey} for ${Math.round(cooldownMs / 1000)}s [${status}]`);
-
-  if (provider && status && reason) {
-    console.error(`❌ ${provider} [${status}]: ${reason}`);
+  if (disableAccount) {
+    log.warn("AUTH", `${connName} DISABLED (bad account) [${status}] ${reason.slice(0, 160)}`);
+  } else if (skipOnly) {
+    log.warn(
+      "AUTH",
+      `${connName} SKIP-ONLY (no disable) ${lockKey} ${Math.round(cooldownMs / 1000)}s [${status}] ${reason.slice(0, 120)}`,
+    );
+  } else {
+    log.warn("AUTH", `${connName} locked ${lockKey} for ${Math.round(cooldownMs / 1000)}s [${status}]`);
   }
 
-  return { shouldFallback: true, cooldownMs };
+  if (provider && status && reason) {
+    console.error(`❌ ${provider} [${status}]: ${reason.slice(0, 200)}`);
+  }
+
+  return { shouldFallback: true, cooldownMs, disabled: disableAccount, skipOnly };
 }
 
 /**
@@ -285,10 +492,45 @@ export async function clearAccountError(connectionId, currentConnection, model =
 
   // Only reset error state if no active locks remain
   if (remainingActiveLocks.length === 0) {
-    Object.assign(clearObj, { testStatus: "active", lastError: null, lastErrorAt: null, backoffLevel: 0 });
+    Object.assign(clearObj, {
+      testStatus: "active",
+      lastError: null,
+      lastErrorAt: null,
+      errorCode: null,
+      backoffLevel: 0,
+    });
   }
 
   await updateProviderConnection(connectionId, clearObj);
+}
+
+/**
+ * After a skip-only failure (400 max-prompt / 500 / 502) and successful fallback
+ * to the next account: wipe lastError/errorCode so the previous account is not
+ * shown as BAD in the dashboard and is not treated as auth-broken.
+ * Keeps any still-active model lock (short cooldown) so we don't immediately
+ * re-hit the same account mid-request storm.
+ */
+export async function clearSkipOnlyAccountError(connectionId, status, errorText) {
+  if (!connectionId || connectionId === "noauth") return;
+  if (!isSkipOnlyRotationError(status, errorText)) return;
+  try {
+    await updateProviderConnection(connectionId, {
+      lastError: null,
+      lastErrorAt: null,
+      errorCode: null,
+      // Do not force testStatus=error; keep unavailable until lock expires or
+      // a later success path clears it. If currently "error" from a prior bug,
+      // demote to unavailable so rotation can pick us again after lock.
+      testStatus: "unavailable",
+    });
+    log.info(
+      "AUTH",
+      `cleared skip-only lastError on ${String(connectionId).slice(0, 8)} [${status}]`,
+    );
+  } catch (e) {
+    log.debug?.("AUTH", `clearSkipOnlyAccountError failed: ${e?.message || e}`);
+  }
 }
 
 /**

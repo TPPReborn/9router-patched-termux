@@ -2,6 +2,7 @@ import {
   QODER_DEVICE_TOKEN_URL,
   QODER_LOGIN_URL,
   QODER_USERINFO_URL,
+  QODER_CLIENT_ID,
 } from "../../qoder/constants.js";
 import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
@@ -74,8 +75,9 @@ export class QoderService {
     const params = new URLSearchParams({
       challenge,
       challenge_method: "S256",
-      machine_id: machineId,
       nonce,
+      machine_id: machineId,
+      client_id: QODER_CLIENT_ID,
     });
 
     return {
@@ -98,7 +100,7 @@ export class QoderService {
     if (!nonce || !codeVerifier) {
       throw new Error("pollDeviceToken: missing nonce or code verifier");
     }
-    const url = `${QODER_DEVICE_TOKEN_URL}?nonce=${encodeURIComponent(nonce)}&verifier=${encodeURIComponent(codeVerifier)}&challenge_method=S256`;
+    const url = `${QODER_DEVICE_TOKEN_URL}?nonce=${encodeURIComponent(nonce)}&verifier=${encodeURIComponent(codeVerifier)}&challenge_method=S256&client_id=${QODER_CLIENT_ID}`;
 
     const response = await fetchWithTimeout(url, {
       method: "GET",

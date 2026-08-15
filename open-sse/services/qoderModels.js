@@ -105,7 +105,7 @@ async function fetchQoderCatalogRaw(credentials, signal, proxyOptions = null) {
     if (signal && abortListener) signal.removeEventListener("abort", abortListener);
   }
 
-  if (!response.ok) return null;
+  if (!response.ok) return { ok: false, status: response.status };
 
   const body = await response.json().catch(() => null);
   if (!body || !Array.isArray(body.chat)) return null;
@@ -182,6 +182,13 @@ export async function resolveQoderModels(credentials, options = {}) {
   const fetchPromise = (async () => {
     const fetched = await fetchQoderCatalogRaw(credentials, options.signal, options.proxyOptions);
     if (!fetched) return null;
+    if (fetched.ok === false) {
+      // Upstream rejected the catalog request (403 code 105 = login expired /
+      // revoked device token). Do NOT cache the failure — the caller sees
+      // null and the rotation loop disables the account. Mirrors qodercli:
+      // a dead token surfaces as account-health, not model-missing.
+      return { ok: false, status: fetched.status, models: [], rawConfigs: new Map(), fetched: true };
+    }
     const entry = {
       expiresAt: Date.now() + CACHE_TTL_MS,
       models: fetched.models,

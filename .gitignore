@@ -70,6 +70,21 @@ deploy*.sh
 ecosystem.config.*
 
 scripts/agSniffer/*
+
+# Qoder / OpenCode backup & patch artifacts
+tools/
+backup-*/
+backup-*.js
+backup-*.mjs
+.backup-*
+*.backup.*
+.grok-*
+grok-*-backup*
+.qoder/*
+!qoder-claim*.js
+!qoder-refresh*
+!http-claim*
+!claim-*.js
 gitbooks/*
 gitbook/README.md
 

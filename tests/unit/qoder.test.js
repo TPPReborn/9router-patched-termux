@@ -370,7 +370,7 @@ describe("normalizeMessages", () => {
 });
 
 describe("wrapQoderSSE", () => {
-  const { wrapQoderSSE } = qoderExecutorInternals;
+  const { wrapQoderSSE, peekFirstSSEEnvelope } = qoderExecutorInternals;
 
   // Helper: build a fake Response carrying the given lines as the body.
   function makeResponse(lines, { status = 200 } = {}) {
@@ -465,5 +465,53 @@ describe("wrapQoderSSE", () => {
     const r = new Response("not ok", { status: 500 });
     const wrapped = wrapQoderSSE(r, "qoder/auto");
     expect(wrapped).toBe(r);
+  });
+});
+
+describe("peekFirstSSEEnvelope", () => {
+  const { peekFirstSSEEnvelope } = qoderExecutorInternals;
+
+  function makeResponse(lines, { status = 200 } = {}) {
+    const body = new ReadableStream({
+      start(controller) {
+        const encoder = new TextEncoder();
+        for (const line of lines) controller.enqueue(encoder.encode(line));
+        controller.close();
+      },
+    });
+    return new Response(body, { status });
+  }
+
+  async function drain(response) {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+    }
+    buf += decoder.decode();
+    return buf;
+  }
+
+  it("detects an error envelope (statusCodeValue != 200) without consuming the stream", async () => {
+    const env = JSON.stringify({ statusCodeValue: 403, body: "{\"code\":\"112\",\"message\":\"out\"}" });
+    const r = makeResponse([`data: ${env}\n\n`]);
+    const { response, envelope } = await peekFirstSSEEnvelope(r);
+    expect(envelope.statusCodeValue).toBe(403);
+    // pass-through branch must still be readable and carry the same data
+    expect(response.ok).toBe(true);
+    const out = await drain(response);
+    expect(out).toContain("403");
+  });
+
+  it("returns null envelope for a healthy 200 stream and preserves all data", async () => {
+    const env = JSON.stringify({ statusCodeValue: 200, body: "{\"choices\":[]}" });
+    const r = makeResponse([`data: ${env}\n\n`, "data: [DONE]\n\n"]);
+    const { response, envelope } = await peekFirstSSEEnvelope(r);
+    expect(envelope).toBeNull();
+    const out = await drain(response);
+    expect(out).toContain("statusCodeValue");
   });
 });

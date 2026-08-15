@@ -1,26 +1,35 @@
 export default {
   id: "opencode-go",
-  priority: 210,
+  priority: 150, // Higher priority for faster selection
   alias: "opencode-go",
   aliases: [
     "ocg",
   ],
   uiAlias: "ocg",
   display: {
-    name: "OpenCode Go",
-    icon: "terminal",
-    color: "#E87040",
-    textIcon: "OC",
+    name: "OpenCode Go ⚡️", // Lightning bolt for speed indication
+    icon: "bolt", // Changed to lightning bolt
+    color: "#FFD700", // Gold/yellow for attention
+    textIcon: "OC⚡️", // Lightning in text
     website: "https://opencode.ai/auth",
     notice: {
-      text: "OpenCode Go subscription: $5/mo (then  0/mo). Access to Kimi, GLM, Qwen, MiMo, MiniMax models.",
+      text: "OpenCode Go ⚡️ ($5/mo) — Fast Kimi, GLM, Qwen, MiMo responses", // Added speed note
       apiKeyUrl: "https://opencode.ai/auth",
     },
   },
   category: "apikey",
   transport: {
     baseUrl: "https://opencode.ai/zen/go/v1/chat/completions",
-    headers: {},
+    headers: {
+      "Accept": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+    },
+    timeoutMs: 30000, // Faster timeout
+  },
+  thinkingConfig: {
+    options: ["off", "low", "medium", "high", "max"],
+    defaultMode: "max", // Maximum reasoning effort for best quality
   },
   models: [
     { id: "glm-5.2", name: "GLM 5.2" },

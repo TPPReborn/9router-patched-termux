@@ -1,4 +1,48 @@
-# v0.5.35 (2026-07-16)
+# v0.5.36 (2026-08-15)
+
+## Features
+
+### Qoder Provider — Full Alignment with qodercli 1.1.14
+- **Model registry**: mirror qodercli 1.1.14 live catalog (15 models incl. `cmodel`/Cantus); `qmodel_38max` default
+- **Endpoint sync**: chat + model-list host moved to `api2.qoder.sh` (binary prod default); model list uses `?Encode=1`
+- **Payload parity**: raw JSON body (no `qoderEncodeBody`) + `session_type: qodercli`, `agent_id: agent_common`, `task_id: common` — matches binary byte-for-byte, fixes `flow nodes found for router agent_router`
+- **COSY signing**: updated constants to binary values (`Cosy-Version 1.1.14`, `MachineOS aarch64_linux`, `ClientType 5`); full COSY signer ported to Go for `http-claim`
+- **Token refresh**: executor `refreshCredentials` routes by token type (`jt-` job → `jobToken/refresh`, `dt-` device → `deviceToken/refresh`); 30-min background scheduler (now via `oauthTokenWarm`)
+- **Account rotation**: preflight health-check sorts live accounts first; per-account catalog awareness; 403 code 112 (credit-drained) = skip-only not disable; userId must be authoritative UUID from quota API (fixes COSY 403 "Login expired")
+- **Timeout retry**: recoverable errors (408/429/5xx) retried with exponential backoff; non-recoverable (401/403) passed through for rotation
+
+### OpenCode Free (`oc`) — Rate Limit & Latency Optimization
+- **Thinking OFF**: `thinkingConfig.defaultMode: "off"` + executor strips `reasoning_effort`/`thinking`/`budget_tokens` — fast responses, quota savings
+- **Rate limiter** (`open-sse/utils/rateLimiter.js`): token-bucket per provider; gap ONLY enforced after a 429 (normal requests flow unthrottled so tool-heavy tasks aren't slowed); 429 backoff exponential 15s→30s→60s
+- **Fingerprint rotation**: per-request unique `x-opencode-session-id`/`x-opencode-instance-id`/`User-Agent` to mimic distinct clients and spread free-tier bucket
+- **Airplane-cycle fallback** (`open-sse/utils/airplane-circle.js`): on persistent 429 via direct strategy, toggles airplane mode ON↔OFF (Shizuku `rish`) to force fresh network identity, then retries once
+- **Proxy strategy**: `oc` honors proxy pool via `providerStrategies['oc']`; supports vercel-relay / HTTP proxy / direct
+- **Latency**: first-token ~0.86s (was 3-5s); keep-alive + streaming headers
+
+### Claim Tooling
+- **`~/bin/claim-batch.js`**: batch PAT claim with cmodel verification — exchange PAT→job token, quota/plan check, catalog COSY test, chat claim, DB insert, API verify
+- **`~/bin/claim-one.js`**: single PAT claim workflow
+- **`~/bin/http-claim.go`** + **`~/bin/qoder-refresh.go`**: pure-Go implementations (full COSY signer, parallel workers) — no qodercli binary dependency
+- **`~/bin/qoder-claim-py`**: v5 — PAT exchange + authoritative UUID userId + job-token refresh
+
+## Fixes
+- **Qoder**: `model_config for "qd/cmodel" not yet known` — strip `qd/` prefix; cmodel present in live catalog (15 models)
+- **Qoder**: `flow nodes found for router agent_router` — reverted custom `agent_id`/`task_id`/`session_type` to binary-exact values
+- **OpenCode**: `stream_options should be set along with stream=true` — removed invalid `stream_options` on non-stream requests
+- **Qoder account death**: preflight no longer permanently disables accounts on transient 403; credit-drained 403 code 112 is skip-only (falls back to next account)
+- **Qoder userId**: COSY signature now uses authoritative UUID from quota API (username as userId → 403 code 105)
+
+## Changed
+- `open-sse/providers/registry/qoder.js` — 15 models, timeout/retry config, thinking/tools skeleton
+- `open-sse/providers/registry/opencode.js` — thinking off, display badges, priority bump
+- `open-sse/executors/qoder.js` — raw body, binary payload parity, token-type refresh
+- `open-sse/executors/opencode.js` — thinking strip, rate-limit gate, fingerprint rotation, airplane fallback
+- `open-sse/utils/rateLimiter.js` — NEW
+- `open-sse/utils/airplane-circle.js` — NEW
+- `src/sse/services/auth.js` — noAuth rate-limit gate, qoder preflight sort
+- `src/shared/services/oauthTokenWarm.js` — qoder provider added
+
+## v0.5.35 (2026-07-16)
 
 ## Features
 - **xAI**: Grok Imagine video generation (`/v1/videos`) + CLI
