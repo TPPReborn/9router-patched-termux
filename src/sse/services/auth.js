@@ -1,7 +1,7 @@
 import { getProviderConnections, validateApiKey, updateProviderConnection, getSettings, getProxyPools } from "@/lib/localDb";
 import { resolveConnectionProxyConfig, pickProxyPoolId } from "@/lib/network/connectionProxy";
 import { formatRetryAfter, checkFallbackError, isModelLockActive, buildModelLockUpdate, getEarliestModelLockUntil } from "open-sse/services/accountFallback.js";
-import { MAX_RATE_LIMIT_COOLDOWN_MS } from "open-sse/config/errorConfig.js";
+import { MAX_RATE_LIMIT_COOLDOWN_MS, ACCOUNT_DEAD_STATUSES, ACCOUNT_DEAD_BODY_400_RE, PER_MODEL_GATE_RE } from "open-sse/config/errorConfig.js";
 import { resolveProviderId, FREE_PROVIDERS } from "@/shared/constants/providers.js";
 import { resolveQoderModels } from "open-sse/services/qoderModels.js";
 import { rateLimitCheck } from "open-sse/utils/rateLimiter.js";
@@ -44,6 +44,8 @@ const SKIP_ONLY_MODEL_MISS_RE =
  *  - 400 + max-prompt / context-length style messages
  *  - 500 / 502 upstream provider-side; not credential death)
  *  - 400 + per-account model not in catalog (skip to an account that has it)
+ *  - per-model entitlement gate (403 "Deposit required to unlock premium model"):
+ *    account still serves other models, so only this model is skipped/locked.
  */
 export function isSkipOnlyRotationError(status, errorText) {
   const code = Number(status);
@@ -54,6 +56,8 @@ export function isSkipOnlyRotationError(status, errorText) {
   if (err && SKIP_ONLY_CONTENT_RE.test(err)) return true;
   // Per-account model miss — the account may serve other models fine.
   if (err && SKIP_ONLY_MODEL_MISS_RE.test(err)) return true;
+  // Per-model paywall — takes precedence over the 403 status rule below.
+  if (err && PER_MODEL_GATE_RE.test(err)) return true;
   return false;
 }
 
@@ -77,7 +81,9 @@ export function isAuthBrokenConnection(c) {
   }
 
   if (c.testStatus === "error") return true;
-  if (code === 401 || code === 403 || code === 402) return true;
+  if (ACCOUNT_DEAD_STATUSES.includes(code)) return true;
+  // 400 carrying an account-fault body (billing/quota/key) — see shouldDisableOnBadResponse
+  if (code === 400 && err && ACCOUNT_DEAD_BODY_400_RE.test(err)) return true;
   if (err && AUTH_BROKEN_RE.test(err)) return true;
   if (err && ACCOUNT_EXHAUSTED_RE.test(err)) return true;
   // 429 + free-usage / subscription exhausted body (stored as lastError)
@@ -95,7 +101,12 @@ export function shouldDisableOnBadResponse(status, errorText) {
   // transient quota state, not credential death — credit can be topped up.
   // Skip + short cooldown instead of disabling the account permanently.
   if (code === 403 && /112|personalCreditsDrainedOut|pricingUrl/.test(err)) return false;
-  if (code === 401 || code === 403 || code === 402) return true;
+  // 400/402/403 = account dead. 400 additionally requires an account-fault body
+  // (billing/quota/key/access); a plain 400 request fault must not disable.
+  if (ACCOUNT_DEAD_STATUSES.includes(code)) {
+    return code !== 400 || ACCOUNT_DEAD_BODY_400_RE.test(err);
+  }
+  if (code === 400 && ACCOUNT_DEAD_BODY_400_RE.test(err)) return true;
   if (AUTH_BROKEN_RE.test(err)) return true;
   if (ACCOUNT_EXHAUSTED_RE.test(err)) return true;
   // 429 free-usage-exhausted (Grok) — not a short cooldown; disable account

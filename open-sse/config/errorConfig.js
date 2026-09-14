@@ -28,6 +28,24 @@ export const DEFAULT_ERROR_MESSAGES = {
   504: "Gateway timeout"
 };
 
+// --- Account-death classification (shared by the auth pool sweeps) ---
+
+// HTTP statuses that always mean the account itself is unusable, never the request.
+export const ACCOUNT_DEAD_STATUSES = [401, 402, 403];
+
+// Some upstreams report account death as HTTP 400 (billing / quota / key faults).
+// 400 also carries genuine request faults, so the body must look like an account
+// fault before the account is treated as dead — e.g. api.b.ai answers exhausted
+// credit with 400 {"error":{"code":"insufficient_user_quota"}}.
+export const ACCOUNT_DEAD_BODY_400_RE =
+  /insufficient|balance|quota|credit|billing|payment|suspend|deactivat|revoked|invalid api key|api key (is )?(invalid|expired|disabled)|access_denied|account (is )?(disabled|locked|banned)/i;
+
+// Per-model entitlement gates (e.g. api.b.ai "Access restricted. Deposit required
+// to unlock premium model"). The account still serves other models, so it must
+// never be disabled for these — skip to the next account for THIS model only.
+export const PER_MODEL_GATE_RE =
+  /deposit required|unlock premium|premium model|upgrade (your )?plan|not entitled|plan does not include|model not included/i;
+
 // Exponential backoff config for rate limits
 export const BACKOFF_CONFIG = {
   base: 2000,

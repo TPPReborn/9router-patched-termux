@@ -58,4 +58,34 @@ describe("markAccountUnavailable auto-disable (temp DB)", () => {
     expect(rContent.disabled).toBe(false);
     expect((await getProviderConnections({ provider })).find((c) => c.id === healthy.id).isActive).toBe(true);
   });
+
+  it("403 per-model paywall does NOT disable — account stays in the pool", async () => {
+    const { createProviderConnection, getProviderConnections } = await import("@/lib/db/index.js");
+    const { markAccountUnavailable, getProviderCredentials } = await import("@/sse/services/auth.js");
+
+    const provider = "openai-compatible-chat-gatetest";
+    const acct = await createProviderConnection({
+      provider,
+      authType: "apikey",
+      name: "gated",
+      priority: 1,
+      apiKey: "sk-test",
+      testStatus: "active",
+    });
+
+    const gate =
+      '[403]: {"error":{"code":"access_denied","message":"Access restricted. Deposit required to unlock premium model"}}';
+    const res = await markAccountUnavailable(acct.id, 403, gate, provider, "premium-model");
+    expect(res.disabled).toBe(false);
+    expect(res.skipOnly).toBe(true);
+
+    const stored = (await getProviderConnections({ provider })).find((c) => c.id === acct.id);
+    expect(stored.isActive).toBe(true);
+    expect(stored.testStatus).toBe("unavailable");
+    expect(stored[`modelLock_premium-model`]).toBeTruthy();
+
+    // Another model on the same account is still selectable (lock is per model).
+    const picked = await getProviderCredentials(provider, null, "other-model");
+    expect(picked.connectionId).toBe(acct.id);
+  });
 });
