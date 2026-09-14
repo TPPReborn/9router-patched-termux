@@ -207,7 +207,6 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
         testStatus: "error",
         lastError: reason,
         lastErrorAt: c.lastErrorAt || new Date().toISOString(),
-        errorCode: c.errorCode != null ? c.errorCode : 401,
       }).catch(() => {});
     }
     const brokenIds = new Set(brokenStillActive.map((c) => c.id));
