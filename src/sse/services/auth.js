@@ -16,8 +16,12 @@ const AUTH_BROKEN_RE =
 
 // Grok free-tier / subscription exhausted — account unusable for chat until window resets
 // (often hours). Disable so rotation/fill-first skips immediately.
+// Also covers "insufficient balance / credit" style upstreams that report HTTP 400
+// with a body like {"error":{"message":"credit insufficient balance: balance=0 …"}}
+// (b.ai and friends) instead of a proper 402/403 — those accounts never recover
+// on retry, so they must leave the rotation pool, not just cooldown.
 const ACCOUNT_EXHAUSTED_RE =
-  /free-usage-exhausted|used all the included free usage|out of credits|need a grok subscription|payment required|insufficient.?quota|spending.?limit|subscription:free-usage-exhausted|billing_error/i;
+  /free-usage-exhausted|used all the included free usage|out of credits|no.?credits?\b|credit.?insufficient|insufficient.?credit|insufficient.?balance|out of balance|exceeded your current quota|need a grok subscription|payment required|insufficient.?quota|spending.?limit|subscription:free-usage-exhausted|billing_error/i;
 
 /**
  * Request/content errors that are NOT account-health signals.
