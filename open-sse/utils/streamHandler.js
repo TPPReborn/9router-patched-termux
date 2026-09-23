@@ -7,6 +7,28 @@ function getTimeString() {
   return new Date().toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
+// Client-abort reasons that are expected when a caller hangs up mid-stream
+// (e.g. client read timeout, user cancel, upstream slow-start + client retry).
+// These are NORMAL lifecycle events, not server failures: keep them out of the
+// error stream so a busy gateway doesn't drown the console in aborts.
+// Any non-listed reason still logs at error level.
+const CLIENT_ABORT_REASONS = new Set([
+  "ResponseAborted",
+  "client_closed",
+  "cancelled",
+  "canceled",
+  "aborted",
+  "abort",
+  "client_abort",
+]);
+
+export function isClientAbortReason(reason) {
+  if (!reason) return false;
+  const r = String(reason).toLowerCase();
+  if (CLIENT_ABORT_REASONS.has(reason) || CLIENT_ABORT_REASONS.has(r)) return true;
+  return r.includes("responseaborted") || r.includes("client") || r.includes("abort") || r.includes("cancel");
+}
+
 /**
  * Create stream controller with abort and disconnect detection
  * @param {object} options
@@ -41,8 +63,16 @@ export function createStreamController({ onDisconnect, onError, log, provider, m
       if (disconnected) return;
       disconnected = true;
 
-      logStream("⚡", `DISCONNECT: ${reason}`);
-      dbg("CTRL", `${provider}/${model} | disconnect=${reason} | dur=${Date.now() - startTime}ms`);
+      // Expected client hangs-up (timeout/cancel/retry) are logged quietly at
+      // debug level instead of flooding the error stream. Only real anomalies
+      // (unknown reasons) keep the visible ⚡ line.
+      const clientAbort = isClientAbortReason(reason);
+      if (clientAbort) {
+        dbg("CTRL", `${provider}/${model} | client-abort=${reason} | dur=${Date.now() - startTime}ms`);
+      } else {
+        logStream("⚡", `DISCONNECT: ${reason}`);
+        dbg("CTRL", `${provider}/${model} | disconnect=${reason} | dur=${Date.now() - startTime}ms`);
+      }
 
       // Delay abort to allow cleanup
       abortTimeout = setTimeout(() => {
@@ -86,6 +116,17 @@ export function createStreamController({ onDisconnect, onError, log, provider, m
   };
 }
 
+// Idle keepalive for the client-facing SSE stream. Sent as an SSE comment
+// (ignored by spec-compliant parsers) so a long upstream prefill or account
+// fallback cannot trip short client/proxy read timeouts on large requests
+// (some callers abort a silent stream after ~10s).
+const STREAM_KEEPALIVE_INTERVAL_MS = 5000;
+const STREAM_KEEPALIVE_BYTES = new TextEncoder().encode(": keepalive\n\n");
+// Once the final marker is forwarded we stop waiting for upstream EOF — but
+// keep draining in the background (bounded) so transform flush and usage
+// accounting still run to completion.
+const STREAM_DRAIN_TIMEOUT_MS = 30000;
+
 /**
  * Create transform stream with disconnect detection
  * Wraps existing transform stream and adds abort capability.
@@ -99,6 +140,11 @@ export function createDisconnectAwareStream(transformStream, streamController, o
   const reader = transformStream.readable.getReader();
   const writer = transformStream.writable.getWriter();
   let terminalEmitted = false;
+  let finalMarkerSent = false;
+  let draining = false;
+  let keepaliveTimer = null;
+  let lastOutputAt = Date.now();
+  let atLineBoundary = true;
 
   // Emit a synthesized terminal payload (e.g. Responses response.failed + [DONE]) once
   const emitTerminal = (controller) => {
@@ -110,11 +156,81 @@ export function createDisconnectAwareStream(transformStream, streamController, o
     } catch { /* best-effort terminal */ }
   };
 
+  // Detect the final SSE marker so the client response can end promptly.
+  // Scans small chunks only (markers are tiny single events; decoding large
+  // content chunks would be wasted work) and anchors on start/newline so
+  // marker text inside model content can't false-positive.
+  const isFinalMarker = (value) => {
+    const len = value?.byteLength || value?.length || 0;
+    if (!len || len > 1024) return false;
+    let text;
+    try { text = new TextDecoder().decode(value); } catch { return false; }
+    return (
+      text.startsWith("data: [DONE]") || text.includes("\ndata: [DONE]") ||
+      text.startsWith("event: message_stop") || text.includes("\nevent: message_stop")
+    );
+  };
+
+  const stopKeepalive = () => {
+    if (keepaliveTimer) { clearInterval(keepaliveTimer); keepaliveTimer = null; }
+  };
+
+  // Track the last byte pushed downstream so keepalives are only injected
+  // while the stream is idle AND at a line boundary — never mid-event.
+  const noteOutput = (value) => {
+    lastOutputAt = Date.now();
+    const len = value?.byteLength || value?.length || 0;
+    if (!len) return;
+    const last = value[len - 1];
+    atLineBoundary = last === 0x0a || last === "\n";
+  };
+
+  // Background drain after early close: read upstream to EOF (or timeout) so
+  // the transform's flush() — usage stats, request detail — still runs.
+  const drainUpstream = () => {
+    if (draining) return;
+    draining = true;
+    const timer = setTimeout(() => { reader.cancel().catch(() => { }); }, STREAM_DRAIN_TIMEOUT_MS);
+    (async () => {
+      try {
+        while (true) {
+          const r = await reader.read();
+          if (r.done) break;
+        }
+      } catch { /* upstream gone */ } finally { clearTimeout(timer); }
+    })();
+  };
+
   return new ReadableStream({
+    start(controller) {
+      keepaliveTimer = setInterval(() => {
+        if (!streamController.isConnected() || finalMarkerSent) { stopKeepalive(); return; }
+        if (!atLineBoundary) return; // never inject mid-line
+        if (Date.now() - lastOutputAt < STREAM_KEEPALIVE_INTERVAL_MS) return; // data is flowing
+        try {
+          controller.enqueue(STREAM_KEEPALIVE_BYTES);
+          lastOutputAt = Date.now();
+        } catch { stopKeepalive(); }
+      }, STREAM_KEEPALIVE_INTERVAL_MS);
+    },
+
     async pull(controller) {
       if (!streamController.isConnected()) {
+        stopKeepalive();
         emitTerminal(controller);
         controller.close();
+        return;
+      }
+
+      // Final marker already forwarded to the client: end the response now.
+      // Waiting for upstream EOF first is what leaves the socket open just
+      // long enough for a client that already saw [DONE] to close before the
+      // server does — surfacing as a spurious ResponseAborted.
+      if (finalMarkerSent) {
+        stopKeepalive();
+        streamController.handleComplete();
+        controller.close();
+        drainUpstream();
         return;
       }
 
@@ -122,12 +238,16 @@ export function createDisconnectAwareStream(transformStream, streamController, o
         const { done, value } = await reader.read();
 
         if (done) {
+          stopKeepalive();
           streamController.handleComplete();
           controller.close();
           return;
         }
+        if (isFinalMarker(value)) finalMarkerSent = true;
+        noteOutput(value);
         controller.enqueue(value);
       } catch (error) {
+        stopKeepalive();
         const wasConnected = streamController.isConnected();
         // Controller already closed = downstream ended; not an upstream error, skip noisy log.
         const msg0 = error?.message || "";
@@ -165,7 +285,12 @@ export function createDisconnectAwareStream(transformStream, streamController, o
     },
 
     cancel(reason) {
-      streamController.handleDisconnect(reason || "cancelled");
+      stopKeepalive();
+      // Cancellation after the final marker is just the client (or Next.js)
+      // tearing down an already-finished response — treat it as normal
+      // completion, not a disconnect. Only pre-marker cancels are aborts.
+      if (finalMarkerSent) streamController.handleComplete();
+      else streamController.handleDisconnect(reason || "cancelled");
       reader.cancel();
       writer.abort();
     }

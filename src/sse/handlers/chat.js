@@ -190,12 +190,21 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
   // Extract userAgent from request
   const userAgent = request?.headers?.get("user-agent") || "";
 
+  // Client abort signal (fires when the caller hangs up mid-request).
+  // Used to stop account fallback / upstream work for a dead caller.
+  const clientAbortSignal = request?.signal || null;
+
   // Try with available accounts (fallback on errors)
   const excludeConnectionIds = new Set();
   let lastError = null;
   let lastStatus = null;
 
   while (true) {
+    // Client already gone — stop selecting accounts / dispatching upstream work.
+    if (clientAbortSignal?.aborted) {
+      log.info("CHAT", "Client disconnected — aborting (no fallback)");
+      return errorResponse(499, "Client closed request");
+    }
     const credentials = await getProviderCredentials(provider, excludeConnectionIds, model);
 
     // All accounts unavailable
@@ -238,6 +247,7 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
       clientRawRequest,
       connectionId: credentials.connectionId,
       userAgent,
+      clientAbortSignal,
       apiKey,
       ccFilterNaming: !!chatSettings.ccFilterNaming,
       rtkEnabled: !!chatSettings.rtkEnabled,
@@ -270,6 +280,9 @@ async function handleSingleModelChat(body, modelStr, clientRawRequest = null, re
     });
 
     if (result.success) return result.response;
+
+    // Client gone mid-flight — do not lock or rotate accounts for a dead caller.
+    if (clientAbortSignal?.aborted) return result.response;
 
     // Mark account unavailable (auto-calculates cooldown with exponential backoff, or precise resetsAtMs)
     const { shouldFallback } = await markAccountUnavailable(credentials.connectionId, result.status, result.error, provider, model, result.resetsAtMs);
