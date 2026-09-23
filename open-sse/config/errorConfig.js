@@ -46,6 +46,21 @@ export const ACCOUNT_DEAD_BODY_400_RE =
 export const PER_MODEL_GATE_RE =
   /deposit required|unlock premium|premium model|upgrade (your )?plan|not entitled|plan does not include|model not included/i;
 
+// --- Zero-balance hard-delete policy (purchased account pools) ---
+
+// Provider node IDs whose accounts can never recover once the upstream reports
+// a zero balance (pool accounts are not topped up). For these, a 400 with the
+// body below deletes the connection row instead of merely disabling it.
+// Scoped deliberately: other providers keep the disable-only path.
+export const ZERO_BALANCE_DELETE_PROVIDER_IDS = new Set([
+  "openai-compatible-chat-65f09875-1a72-44bc-8d53-0e2fdb865d9a", // BAI (api.b.ai)
+]);
+
+// Strict body match for "credit insufficient balance: balance=0 required=…".
+// The negative lookahead keeps balance=0.5 / balance=100 from matching.
+export const ZERO_BALANCE_BODY_RE =
+  /insufficient\s+balance\s*:\s*balance\s*=\s*0(?![\d.])/i;
+
 // Exponential backoff config for rate limits
 export const BACKOFF_CONFIG = {
   base: 2000,

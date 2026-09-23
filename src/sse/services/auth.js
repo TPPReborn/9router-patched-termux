@@ -1,7 +1,7 @@
-import { getProviderConnections, validateApiKey, updateProviderConnection, getSettings, getProxyPools } from "@/lib/localDb";
+import { getProviderConnections, validateApiKey, updateProviderConnection, deleteProviderConnection, getSettings, getProxyPools } from "@/lib/localDb";
 import { resolveConnectionProxyConfig, pickProxyPoolId } from "@/lib/network/connectionProxy";
 import { formatRetryAfter, checkFallbackError, isModelLockActive, buildModelLockUpdate, getEarliestModelLockUntil } from "open-sse/services/accountFallback.js";
-import { MAX_RATE_LIMIT_COOLDOWN_MS, ACCOUNT_DEAD_STATUSES, ACCOUNT_DEAD_BODY_400_RE, PER_MODEL_GATE_RE } from "open-sse/config/errorConfig.js";
+import { MAX_RATE_LIMIT_COOLDOWN_MS, ACCOUNT_DEAD_STATUSES, ACCOUNT_DEAD_BODY_400_RE, PER_MODEL_GATE_RE, ZERO_BALANCE_DELETE_PROVIDER_IDS, ZERO_BALANCE_BODY_RE } from "open-sse/config/errorConfig.js";
 import { resolveProviderId, FREE_PROVIDERS } from "@/shared/constants/providers.js";
 import { resolveQoderModels } from "open-sse/services/qoderModels.js";
 import { rateLimitCheck } from "open-sse/utils/rateLimiter.js";
@@ -112,6 +112,22 @@ export function shouldDisableOnBadResponse(status, errorText) {
   // 429 free-usage-exhausted (Grok) — not a short cooldown; disable account
   if (code === 429 && ACCOUNT_EXHAUSTED_RE.test(err)) return true;
   return false;
+}
+
+/**
+ * Hard-delete policy for purchased account pools (see ZERO_BALANCE_DELETE_PROVIDER_IDS).
+ * When the upstream reports a strict zero balance ("credit insufficient balance:
+ * balance=0 …"), the account can never recover — the row is deleted instead of
+ * disabled. Scoped to listed provider nodes only; fail-safe callers keep the
+ * disable path when this returns false or the delete throws.
+ */
+export function shouldDeleteOnBadResponse(provider, status, errorText) {
+  if (!provider || !ZERO_BALANCE_DELETE_PROVIDER_IDS.has(String(provider))) return false;
+  if (Number(status) !== 400) return false;
+  const err = String(errorText || "");
+  if (!err) return false;
+  if (isSkipOnlyRotationError(status, err)) return false;
+  return ZERO_BALANCE_BODY_RE.test(err);
 }
 
 // backward-compatible alias
@@ -428,6 +444,34 @@ export async function markAccountUnavailable(connectionId, status, errorText, pr
   // Skip-only (400 max-prompt, 500/502): never disable — short model lock + fallback only.
   const skipOnly = isSkipOnlyRotationError(status, reasonRaw);
   const disableAccount = !skipOnly && shouldDisableOnBadResponse(status, reasonRaw);
+
+  // Hard-delete policy (scoped providers only, e.g. BAI purchased pool): a strict
+  // zero-balance 400 removes the row entirely — these accounts never recover.
+  // Fail-safe: if the delete throws, fall through to the normal disable path.
+  if (!skipOnly && shouldDeleteOnBadResponse(provider, status, reasonRaw)) {
+    let deleteFailed = false;
+    let deleted = false;
+    try {
+      deleted = await deleteProviderConnection(connectionId);
+    } catch (e) {
+      deleteFailed = true;
+      log.warn("AUTH", `deleteProviderConnection failed (${connectionId?.slice(0, 8)}): ${e?.message || e} — falling back to disable`);
+    }
+    if (!deleteFailed) {
+      if (deleted) {
+        const connNameDel = conn?.displayName || conn?.name || conn?.email || connectionId.slice(0, 8);
+        log.warn("AUTH", `${connNameDel} DELETED (zero balance, provider pool) [${status}] ${reason.slice(0, 160)}`);
+        if (provider && status && reason) {
+          console.error(`🗑️ ${provider} [${status}]: account ${connectionId.slice(0, 8)} deleted (zero balance)`);
+        }
+      } else {
+        // Row already absent (e.g. concurrent delete) — treat as completed.
+        log.warn("AUTH", `${connectionId?.slice(0, 8)} zero-balance row already absent — nothing to delete`);
+      }
+      return { shouldFallback: true, cooldownMs, deleted: true, disabled: true, skipOnly: false };
+    }
+    // Delete failed — fall through to the normal disable path below.
+  }
 
   // For skip-only: still record lastError briefly for the FAIL log, but keep testStatus
   // as "unavailable" (not "error") so isAuthBrokenConnection does not permanently drop us.
