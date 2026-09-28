@@ -28,6 +28,9 @@ describe("grok-cli registry", () => {
     expect(oauth.deviceCodeUrl).toContain("auth.x.ai");
     expect(oauth.scope).toContain("grok-cli:access");
     expect(oauth.scope).toContain("conversations:write");
+    expect(oauth.scope).toContain("workspaces:read");
+    // User device-code: team:read is rejected by auth.x.ai for User principals
+    expect(oauth.scope.split(/\s+/)).not.toContain("team:read");
     expect(oauth.referrer).toBe("grok-build");
 
     expect(PROVIDER_MODELS.gcli?.some((m) => m.id === "grok-build")).toBe(true);
@@ -96,9 +99,11 @@ describe("GrokCliExecutor", () => {
 
     expect(headers.Authorization).toBe("Bearer tok_test");
     expect(headers.Accept).toBe("text/event-stream");
+    expect(headers["X-XAI-Token-Auth"]).toBe("xai-grok-cli");
     expect(headers["x-xai-token-auth"]).toBeUndefined();
     expect(headers["x-grok-client-identifier"]).toBe("grok-shell");
-    expect(headers["x-grok-client-version"]).toBe("0.2.99");
+    expect(headers["x-grok-client-version"]).toBe("0.2.106");
+    expect(headers["x-grok-client-mode"]).toBe("headless");
     expect(headers["x-grok-session-id"]).toBe("sess-abc");
     expect(headers["x-grok-conv-id"]).toBe("sess-abc");
     expect(headers["x-grok-req-id"]).toBe("req-xyz");
@@ -108,6 +113,8 @@ describe("GrokCliExecutor", () => {
     expect(headers["x-compaction-at"]).toBeUndefined();
     expect(headers["x-email"]).toBe("u@example.com");
     expect(headers["x-userid"]).toBe("uid-1");
+    expect(headers["x-grok-user-id"]).toBe("uid-1");
+    expect(headers["include_usage"]).toBe("true");
     expect(headers["x-authenticateresponse"]).toBeUndefined();
   });
 

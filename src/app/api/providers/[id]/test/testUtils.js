@@ -1,4 +1,8 @@
-import { getProviderConnectionById, updateProviderConnection } from "@/lib/localDb";
+import {
+  getProviderConnectionById,
+  updateProviderConnection,
+  rotateOAuthTokensIfMatch,
+} from "@/lib/localDb";
 import { resolveConnectionProxyConfig } from "@/lib/network/connectionProxy";
 import { testProxyUrl } from "@/lib/network/proxyTest";
 import { isOpenAICompatibleProvider, isAnthropicCompatibleProvider } from "@/shared/constants/providers";
@@ -119,11 +123,13 @@ const OAUTH_TEST_CONFIG = {
     authPrefix: "Bearer ",
     extraHeaders: {
       Accept: "application/json",
+      // Prefer live registry transport headers (version / Token-Auth / mode stay in sync).
       ...(PROVIDERS["grok-cli"]?.headers || {
-        "User-Agent": "grok-pager/0.2.93 grok-shell/0.2.93 (linux; x86_64)",
-        "x-xai-token-auth": "xai-grok-cli",
-        "x-grok-client-identifier": "grok-pager",
-        "x-grok-client-version": "0.2.93",
+        "User-Agent": "grok-shell/0.2.106 (linux; x86_64)",
+        "X-XAI-Token-Auth": "xai-grok-cli",
+        "x-grok-client-identifier": "grok-shell",
+        "x-grok-client-version": "0.2.106",
+        "x-grok-client-mode": "headless",
       }),
     },
     refreshable: true,
@@ -248,7 +254,12 @@ async function refreshOAuthToken(connection) {
     }
 
     if (provider === "codex" || provider === "grok-cli" || provider === "xai") {
-      return await refreshProviderCredentials(provider, connection, console);
+      // Ensure connectionId for refresh gate + DB re-read (single-use RT).
+      const creds = {
+        ...connection,
+        connectionId: connection.connectionId || connection.id,
+      };
+      return await refreshProviderCredentials(provider, creds, console);
     }
 
     if (provider === "claude") {
@@ -917,7 +928,27 @@ export async function testSingleConnection(id) {
     }
   }
 
-  await updateProviderConnection(id, updateData);
+  // Single-use RT (grok-cli/xai): CAS write so we never clobber a concurrent rotation.
+  const singleUse =
+    connection.provider === "grok-cli" ||
+    connection.provider === "gcli" ||
+    connection.provider === "xai";
+  if (singleUse && result.refreshed && result.newTokens?.accessToken) {
+    const expectedRt = connection.refreshToken;
+    const cas = await rotateOAuthTokensIfMatch(id, expectedRt, updateData);
+    if (!cas.ok && cas.reason === "rt_mismatch") {
+      // Another writer won — keep their tokens; still record test outcome on status fields only.
+      await updateProviderConnection(id, {
+        testStatus: updateData.testStatus,
+        lastError: updateData.lastError,
+        lastErrorAt: updateData.lastErrorAt,
+      });
+    } else if (!cas.ok) {
+      await updateProviderConnection(id, updateData);
+    }
+  } else {
+    await updateProviderConnection(id, updateData);
+  }
 
   return { valid: result.valid, error: result.error, refreshed: !!result.refreshed, latencyMs, testedAt: new Date().toISOString() };
 }

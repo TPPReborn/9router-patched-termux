@@ -7,6 +7,8 @@ import { buildExternalIdpRefreshParams } from "../../../src/lib/oauth/kiroExtern
 let _xaiServiceSingleton = null;
 export async function refreshXaiToken(refreshToken, log) {
   if (!refreshToken) return null;
+  // Dedup key is the RT itself — concurrent callers with same RT share one network call
+  // (critical: xAI refresh tokens are single-use / rotate).
   return dedupRefresh("xai", refreshToken, async () => {
     try {
       if (!_xaiServiceSingleton) {
@@ -14,16 +16,26 @@ export async function refreshXaiToken(refreshToken, log) {
         _xaiServiceSingleton = new mod.XaiService();
       }
       const tokens = await _xaiServiceSingleton.refreshAccessToken(refreshToken);
+      if (!tokens?.access_token) {
+        log?.warn?.("TOKEN_REFRESH", "xai refresh returned no access_token");
+        return null;
+      }
       return {
         accessToken: tokens.access_token,
+        // Always prefer rotated RT when present — never keep the consumed one.
         refreshToken: tokens.refresh_token || refreshToken,
-        expiresIn: tokens.expires_in,
+        expiresIn: tokens.expires_in ?? 21600,
         idToken: tokens.id_token,
       };
     } catch (e) {
       log?.warn?.("TOKEN_REFRESH", `xai refresh failed: ${e?.message || e}`);
       const msg = String(e?.message || "");
-      if (msg.includes("invalid_grant") || msg.includes("invalid_request")) {
+      // "Refresh token has been revoked" / reused / invalid_grant → unrecoverable
+      if (
+        msg.includes("invalid_grant") ||
+        msg.includes("invalid_request") ||
+        /refresh token has been revoked|token has been revoked|refresh_token_reused/i.test(msg)
+      ) {
         return { error: "invalid_grant" };
       }
       return null;

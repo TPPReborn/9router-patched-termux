@@ -61,11 +61,21 @@ export const ERROR_RULES = [
   { text: "no credentials",           cooldownMs: COOLDOWN.long },
   { text: "request not allowed",      cooldownMs: COOLDOWN.short },
   { text: "improperly formed request", cooldownMs: COOLDOWN.long },
+  // Grok free-usage / subscription exhausted — long cooldown + account disable (auth.js)
+  { text: "free-usage-exhausted",     cooldownMs: COOLDOWN.long },
+  { text: "used all the included free usage", cooldownMs: COOLDOWN.long },
+  { text: "out of credits",           cooldownMs: COOLDOWN.long },
   { text: "rate limit",               backoff: true },
   { text: "too many requests",        backoff: true },
   { text: "quota exceeded",           backoff: true },
   { text: "capacity",                 backoff: true },
   { text: "overloaded",               backoff: true },
+  // Content-size / prompt-length (Grok 400) — short lock only; auth.js never disables.
+  { text: "maximum prompt length",    cooldownMs: COOLDOWN.short },
+  { text: "prompt length is",         cooldownMs: COOLDOWN.short },
+  { text: "input is too long",        cooldownMs: COOLDOWN.short },
+  { text: "content_length_exceeds",   cooldownMs: COOLDOWN.short },
+  { text: "token limit",              cooldownMs: COOLDOWN.short },
 
   // --- Status-based rules (fallback when text doesn't match) ---
   { status: 401, cooldownMs: COOLDOWN.long },
@@ -73,6 +83,9 @@ export const ERROR_RULES = [
   { status: 403, cooldownMs: COOLDOWN.long },
   { status: 404, cooldownMs: COOLDOWN.long },
   { status: 429, backoff: true },
+  // Upstream blips — short lock + fallback; never account disable (auth.js skip-only).
+  { status: 500, cooldownMs: COOLDOWN.short },
+  { status: 502, cooldownMs: COOLDOWN.short },
 ];
 
 // Backward compat: COOLDOWN_MS object (used by index.js re-export)

@@ -7,7 +7,8 @@ const OPTIONAL_FIELDS = [
   "accessToken", "refreshToken", "expiresAt", "tokenType",
   "scope", "projectId", "apiKey", "testStatus",
   "lastTested", "lastError", "lastErrorAt", "rateLimitedUntil", "expiresIn", "errorCode",
-  "consecutiveUseCount", "idToken", "lastRefreshAt",
+  // Account rotation (fill-first / sticky round-robin) — auth.js writes these
+  "consecutiveUseCount", "lastUsedAt", "idToken", "lastRefreshAt",
 ];
 
 const MODEL_LOCK_PREFIX = "modelLock_";
@@ -274,6 +275,41 @@ export async function updateProviderConnection(id, data) {
     result = merged;
   });
   return result;
+}
+
+/**
+ * CAS for single-use OAuth refresh tokens (xAI / grok-cli).
+ * Only applies `data` if the row's current refreshToken still equals `expectedRefreshToken`.
+ * Prevents clobbering a rotation already written by another process.
+ *
+ * @returns {Promise<{ ok: boolean, reason?: string, connection?: object|null }>}
+ */
+export async function rotateOAuthTokensIfMatch(id, expectedRefreshToken, data = {}) {
+  if (!id) return { ok: false, reason: "missing_id", connection: null };
+  const db = await getAdapter();
+  let out = { ok: false, reason: "unknown", connection: null };
+
+  db.transaction(() => {
+    const row = db.get(`SELECT * FROM providerConnections WHERE id = ?`, [id]);
+    if (!row) {
+      out = { ok: false, reason: "not_found", connection: null };
+      return;
+    }
+    const existing = rowToConn(row);
+    if (
+      expectedRefreshToken &&
+      existing.refreshToken &&
+      existing.refreshToken !== expectedRefreshToken
+    ) {
+      out = { ok: false, reason: "rt_mismatch", connection: existing };
+      return;
+    }
+    const merged = { ...existing, ...data, updatedAt: new Date().toISOString() };
+    upsert(db, merged);
+    out = { ok: true, connection: merged };
+  });
+
+  return out;
 }
 
 export async function deleteProviderConnection(id) {

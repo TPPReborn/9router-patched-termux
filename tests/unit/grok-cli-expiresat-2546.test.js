@@ -54,4 +54,37 @@ describe("Grok CLI (xAI) token expiry propagation (#2546)", () => {
     };
     expect(shouldRefreshCredentials("grok-cli", creds)).toBe(false);
   });
+
+  it("JWT exp fallback: refresh fires when expiresAt missing but accessToken JWT is near expiry", async () => {
+    const { shouldRefreshCredentials, getJwtExpiryMs } = await import(
+      "../../open-sse/services/oauthCredentialManager.js"
+    );
+    // Build an unsigned JWT-shaped token with exp = now + 60s
+    const exp = Math.floor(Date.now() / 1000) + 60;
+    const payload = Buffer.from(JSON.stringify({ exp, sub: "u" })).toString("base64url");
+    const accessToken = `hdr.${payload}.sig`;
+    expect(getJwtExpiryMs(accessToken)).toBe(exp * 1000);
+
+    const creds = {
+      connectionId: "grok-jwt",
+      refreshToken: "rt",
+      accessToken,
+      // no expiresAt — pre-#2546 / partial import shape
+    };
+    expect(shouldRefreshCredentials("grok-cli", creds)).toBe(true);
+  });
+
+  it("JWT exp fallback: no refresh when JWT exp is far future and expiresAt missing", async () => {
+    const { shouldRefreshCredentials } = await import(
+      "../../open-sse/services/oauthCredentialManager.js"
+    );
+    const exp = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
+    const payload = Buffer.from(JSON.stringify({ exp })).toString("base64url");
+    const creds = {
+      connectionId: "grok-jwt-far",
+      refreshToken: "rt",
+      accessToken: `hdr.${payload}.sig`,
+    };
+    expect(shouldRefreshCredentials("grok-cli", creds)).toBe(false);
+  });
 });

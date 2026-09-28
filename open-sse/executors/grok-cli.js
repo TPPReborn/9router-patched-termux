@@ -9,12 +9,20 @@ import { normalizeResponsesInput } from "../translator/formats/responsesApi.js";
 import { getModelUpstreamId } from "../config/providerModels.js";
 import {
   GROK_CLI_CLIENT_IDENTIFIER,
+  GROK_CLI_CLIENT_MODE,
+  GROK_CLI_TOKEN_AUTH,
   GROK_CLI_VERSION,
   supportsGrokCliReasoningEffort,
 } from "../config/grokCli.js";
 import { MEMORY_CONFIG } from "../config/runtimeConfig.js";
 import { resolveSessionId } from "../utils/sessionManager.js";
 import { getConsistentMachineId } from "../shared/machineId.js";
+import {
+  rateLimitCheck,
+  rateLimitSuccess,
+  rateLimitBackoff,
+} from "../utils/rateLimiter.js";
+import { airplaneCycle, airplaneAvailable } from "../utils/airplane-circle.js";
 
 // Server-generated item id prefixes that /responses cannot resolve when store=false
 const SERVER_ID_PATTERN = /^(rs|fc|resp|msg)_/;
@@ -52,7 +60,7 @@ const RESPONSES_API_ALLOWLIST = new Set([
 ]);
 
 const EFFORT_LEVELS = ["low", "medium", "high", "xhigh"];
-const GROK_CLI_TURN_STORE_MAX = 5000;
+const GROK_CLI_TURN_STORE_MAX = 10000;
 const GROK_CLI_NATIVE_ITEM_ID = /^(?:rs|msg|fc)_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const GROK_CLI_FREEFORM_TOOL_PARAMETERS = {
   type: "object",
@@ -63,6 +71,17 @@ const GROK_CLI_FREEFORM_TOOL_PARAMETERS = {
 // Per-session last turn index so multi-turn headers never go backwards within this process
 const sessionTurnStore = new Map();
 let requestTurnStore = new WeakMap();
+
+// Per-request fingerprint rotation — mimic unique client identity like opencode free tier
+let grokCliFingerprintCounter = 0;
+function generateGrokCliFingerprint() {
+  grokCliFingerprintCounter += 1;
+  const rand = Math.floor(Math.random() * 1e9);
+  const ts = Date.now().toString(16);
+  const counter = grokCliFingerprintCounter.toString(16).padStart(4, "0");
+  // Stable-ish but unique per request: machine-id + counter + random
+  return `gcli-${ts.slice(-6)}-${counter}-${rand.toString(16)}`;
+}
 
 /**
  * Count user turns in a Responses `input` array.
@@ -372,6 +391,13 @@ export class GrokCliExecutor extends BaseExecutor {
       this.config.clientIdentifier || headers["x-grok-client-identifier"] || GROK_CLI_CLIENT_IDENTIFIER;
     headers["x-grok-client-version"] =
       this.config.clientVersion || headers["x-grok-client-version"] || GROK_CLI_VERSION;
+    // Binary README: required auth middleware marker for CLI session tokens
+    headers["X-XAI-Token-Auth"] =
+      this.config.tokenAuth || headers["X-XAI-Token-Auth"] || headers["x-xai-token-auth"] || GROK_CLI_TOKEN_AUTH;
+    delete headers["x-xai-token-auth"];
+    // Gateway is always headless (binary sets x-grok-client-mode)
+    headers["x-grok-client-mode"] =
+      headers["x-grok-client-mode"] || this.config.clientMode || GROK_CLI_CLIENT_MODE;
 
     const sessionId = this._currentSessionId || credentials?.connectionId || crypto.randomUUID();
     const reqId = this._currentReqId || crypto.randomUUID();
@@ -383,7 +409,7 @@ export class GrokCliExecutor extends BaseExecutor {
 
     if (this._agentId) headers["x-grok-agent-id"] = this._agentId;
 
-    // Surface model override (CLI always sets this)
+    // Surface model override (binary: proxy routes via this header, not only JSON body)
     if (this._currentModel) headers["x-grok-model-override"] = this._currentModel;
 
     // Identity: mapTokens stores email top-level AND in providerSpecificData;
@@ -392,7 +418,29 @@ export class GrokCliExecutor extends BaseExecutor {
     const email = psd.email || credentials?.email;
     const userId = psd.userId || credentials?.userId || credentials?.providerUserId;
     if (email) headers["x-email"] = email;
-    if (userId) headers["x-userid"] = userId;
+    if (userId) {
+      headers["x-userid"] = userId;
+      // Binary sampler also sends x-grok-user-id (same value family as x-userid).
+      headers["x-grok-user-id"] = userId;
+    }
+
+    // Optional binary sampler headers (xai-grok-sampler client.rs).
+    // include_usage: ask proxy for usage/context detail on the stream.
+    headers["include_usage"] = "true";
+    // deployment-id: only when connection carries one (team/deploy metadata).
+    const deploymentId =
+      psd.deploymentId ||
+      psd.deployment_id ||
+      credentials?.deploymentId ||
+      null;
+    if (deploymentId) headers["x-grok-deployment-id"] = String(deploymentId);
+
+    // Keep-Alive & Connection pooling — match opencode free tier pattern
+    // Per-request fingerprint to spread load across free-tier buckets
+    const fp = generateGrokCliFingerprint();
+    headers["Connection"] = "keep-alive";
+    headers["Cache-Control"] = "no-cache";
+    headers["User-Agent"] = `grok-shell/${GROK_CLI_VERSION} (linux; aarch64)-${fp.slice(0, 8)}`;
 
     return headers;
   }
@@ -417,9 +465,16 @@ export class GrokCliExecutor extends BaseExecutor {
   }
 
   transformRequest(model, body, stream, credentials) {
-    // Session / request ids for headers — stable per client conversation when possible
-    const requestKey = body;
-    this._currentSessionId = resolveGrokCliSessionId(credentials, body);
+    // THINK OFF — force disable reasoning/thinking to match opencode free tier behavior
+    // Strip any reasoning/thinking budget to avoid extended deliberation and token waste
+    const stripped = { ...body };
+    delete stripped.reasoning_effort;
+    delete stripped.thinking;
+    delete stripped.budget_tokens;
+
+    // Use stripped body for rest of processing
+    const requestKey = stripped;
+    this._currentSessionId = resolveGrokCliSessionId(credentials, stripped);
     this._currentReqId = crypto.randomUUID();
     this._agentId =
       credentials?.providerSpecificData?.deviceId ||
@@ -427,102 +482,144 @@ export class GrokCliExecutor extends BaseExecutor {
       null;
 
     // Normalize Responses input
-    const normalized = normalizeResponsesInput(body.input);
-    if (normalized) body.input = normalized;
+    const normalized = normalizeResponsesInput(stripped.input);
+    if (normalized) stripped.input = normalized;
 
     // Chat Completions clients arrive with messages[] — translator should have
     // converted already, but guard empty input.
-    if (!body.input || (Array.isArray(body.input) && body.input.length === 0)) {
-      if (Array.isArray(body.messages) && body.messages.length > 0) {
+    if (!stripped.input || (Array.isArray(stripped.input) && stripped.input.length === 0)) {
+      if (Array.isArray(stripped.messages) && stripped.messages.length > 0) {
         // Soft fallback: map messages → input messages (string content only)
-        body.input = body.messages.map((m) => ({
+        stripped.input = stripped.messages.map((m) => ({
           type: "message",
           role: m.role || "user",
           content: typeof m.content === "string" ? m.content : JSON.stringify(m.content ?? ""),
         }));
-        delete body.messages;
+        delete stripped.messages;
       } else {
-        body.input = [{ type: "message", role: "user", content: "..." }];
+        stripped.input = [{ type: "message", role: "user", content: "..." }];
       }
     }
 
     // Keep role:"system" as-is — official grok-pager HAR sends system, not developer
     // (Codex converts system→developer; Grok CLI does not).
-    normalizeGrokCliInput(body);
-    stripStoredItemReferences(body);
-    normalizeGrokCliTools(body);
+    normalizeGrokCliInput(stripped);
+    stripStoredItemReferences(stripped);
+    normalizeGrokCliTools(stripped);
 
     // Turn index after input is finalized (user-message count, monotonic per session)
-    this._currentTurnIdx = resolveGrokCliTurnIdx(this._currentSessionId, body.input, requestKey);
+    this._currentTurnIdx = resolveGrokCliTurnIdx(this._currentSessionId, stripped.input, requestKey);
 
-    body.stream = true;
-    body.store = false;
+    stripped.stream = true;
+    stripped.store = false;
 
     // Resolve upstream model id (strip effort suffix virtual models)
-    let modelEffort = resolveEffortFromModel(body.model || model);
-    let resolvedModel = body.model || model;
+    let modelEffort = resolveEffortFromModel(stripped.model || model);
+    let resolvedModel = stripped.model || model;
     if (modelEffort) {
       resolvedModel = resolvedModel.replace(new RegExp(`-${modelEffort}$`), "");
     }
     resolvedModel = getModelUpstreamId("gcli", resolvedModel) || resolvedModel;
     // Also try provider id key
-    if (resolvedModel === (body.model || model)) {
+    if (resolvedModel === (stripped.model || model)) {
       resolvedModel = getModelUpstreamId("grok-cli", resolvedModel) || resolvedModel;
     }
-    body.model = resolvedModel;
+    stripped.model = resolvedModel;
     this._currentModel = resolvedModel;
 
-    // Reasoning effort priority: explicit > reasoning_effort > model suffix > default high.
-    // grok-build and Composer reject reasoningEffort but still accept summary/encrypted continuity.
-    const supportsReasoningEffort = supportsGrokCliReasoningEffort(resolvedModel);
+    // Reasoning config — strip reasoning_effort from payload entirely
+    // grok-build rejects effort:"none", so don't send reasoning object at all
     if (!body.reasoning || typeof body.reasoning !== "object") {
-      body.reasoning = { summary: "concise" };
-      if (supportsReasoningEffort) {
-        body.reasoning.effort = normalizeGrokCliEffort(body.reasoning_effort || modelEffort);
-      }
+      delete stripped.reasoning;
     } else {
-      if (supportsReasoningEffort) {
-        body.reasoning.effort = normalizeGrokCliEffort(
-          body.reasoning.effort || body.reasoning_effort || modelEffort,
-        );
-      } else {
-        delete body.reasoning.effort;
-      }
-      if (!body.reasoning.summary) body.reasoning.summary = "concise";
-    }
-    delete body.reasoning_effort;
-
-    // Encrypted reasoning for multi-turn continuity (CLI always requests this)
-    if (body.reasoning && body.reasoning.effort !== "none") {
-      const include = Array.isArray(body.include) ? body.include : [];
-      if (!include.includes("reasoning.encrypted_content")) {
-        include.push("reasoning.encrypted_content");
-      }
-      body.include = include;
+      // If reasoning object exists, strip it completely to force thinking off
+      delete stripped.reasoning;
     }
 
     // Drop Chat Completions leftovers that Responses rejects
-    delete body.messages;
-    delete body.max_tokens;
-    delete body.max_completion_tokens;
-    delete body.n;
-    delete body.seed;
-    delete body.logprobs;
-    delete body.top_logprobs;
-    delete body.frequency_penalty;
-    delete body.presence_penalty;
-    delete body.logit_bias;
-    delete body.user;
-    delete body.stream_options;
-    delete body.prompt_cache_retention;
-    delete body.safety_identifier;
-    delete body.previous_response_id; // store=false → cannot resolve
+    delete stripped.messages;
+    delete stripped.max_tokens;
+    delete stripped.max_completion_tokens;
+    delete stripped.n;
+    delete stripped.seed;
+    delete stripped.logprobs;
+    delete stripped.top_logprobs;
+    delete stripped.frequency_penalty;
+    delete stripped.presence_penalty;
+    delete stripped.logit_bias;
+    delete stripped.user;
+    delete stripped.stream_options;
+    delete stripped.prompt_cache_retention;
+    delete stripped.safety_identifier;
+    delete stripped.previous_response_id; // store=false → cannot resolve
 
-    for (const k of Object.keys(body)) {
-      if (!RESPONSES_API_ALLOWLIST.has(k)) delete body[k];
+    for (const k of Object.keys(stripped)) {
+      if (!RESPONSES_API_ALLOWLIST.has(k)) delete stripped[k];
     }
 
-    return body;
+    return stripped;
+  }
+
+  // Rate limiter + 429 backoff — mimics opencode free tier pattern
+  async execute({ model, body, stream, credentials, signal, log, proxyOptions = null }) {
+    const limiterCfg = {
+      minGapMs: 0,           // no throttle until a 429 happens
+      backoff429Ms: 15_000,  // 15s cooldown after a 429
+      maxBackoffMs: 60_000,
+    };
+
+    // Gate: wait only if a 429 backoff is active
+    const check = rateLimitCheck(this.provider, limiterCfg);
+    if (!check.allowed) {
+      log?.info?.("RATELIMIT", `${this.provider.toUpperCase()} | backoff wait ${Math.round(check.waitMs / 1000)}s (post-429)`);
+      await new Promise(r => setTimeout(r, check.waitMs));
+    }
+
+    const result = await super.execute({ model, body, stream, credentials, signal, log, proxyOptions });
+
+    // Inspect response for 429 → apply backoff + airplane cycle fallback
+    const status = result?.response?.status;
+    if (status === 429) {
+      const backoff = rateLimitBackoff(this.provider, limiterCfg);
+      log?.warn?.("RATELIMIT", `${this.provider.toUpperCase()} | 429 → backoff ${Math.round(backoff / 1000)}s`);
+
+      // Free-tier fallback: toggle airplane mode to force fresh network
+      // identity (new IP) when we're on a direct/proxy strategy and keep
+      // getting hard-limited. This is the "airplane cycle" trick.
+      const tryAirplane =
+        airplaneAvailable() &&
+        !proxyOptions?.vercelRelayUrl &&          // skip if relay (IP not ours anyway)
+        !proxyOptions?.connectionProxyUrl;        // only for direct connection
+
+      if (tryAirplane) {
+        log?.info?.("RATELIMIT", `${this.provider.toUpperCase()} | airplane-cycle fallback (direct strategy, 429) — toggling network`);
+        const cycled = await airplaneCycle({ settleMs: 5_000 });
+        if (cycled) {
+          log?.info?.("RATELIMIT", `${this.provider.toUpperCase()} | airplane-cycle done — retrying request`);
+          rateLimitSuccess(this.provider);
+          // Re-run once after network reset
+          try {
+            const retryResult = await super.execute({ model, body, stream, credentials, signal, log, proxyOptions });
+            const retryStatus = retryResult?.response?.status;
+            if (retryStatus === 429) {
+              rateLimitBackoff(this.provider, limiterCfg);
+              log?.warn?.("RATELIMIT", `${this.provider.toUpperCase()} | still 429 after airplane-cycle`);
+            } else {
+              rateLimitSuccess(this.provider);
+            }
+            return retryResult;
+          } catch (retryErr) {
+            log?.warn?.("RATELIMIT", `${this.provider.toUpperCase()} | retry after airplane failed:`, retryErr?.message);
+          }
+        } else {
+          log?.warn?.("RATELIMIT", `${this.provider.toUpperCase()} | airplane-cycle failed (no rish / no permission)`);
+        }
+      }
+    } else if (status && status < 300) {
+      rateLimitSuccess(this.provider);
+    }
+
+    return result;
   }
 
   async execute(args) {

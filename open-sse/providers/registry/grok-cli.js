@@ -1,8 +1,9 @@
 /**
  * Grok CLI / Grok Build (cli-chat-proxy.grok.com)
  *
- * Source of truth: wire capture of official @xai-official/grok 0.2.99
- * talking to https://cli-chat-proxy.grok.com (OpenAI Responses API).
+ * Source of truth: official grok binary 0.2.106 (bde89716f6) installed at
+ * ~/.grok/bin/grok — strings + embedded docs for auth/headers/endpoints.
+ * Wire format: OpenAI Responses API (force stream).
  *
  * Distinct from:
  *  - `xai`      → api.x.ai (API key / xAI API OAuth PKCE)
@@ -11,8 +12,12 @@
 import {
   GROK_CLI_BASE_URL,
   GROK_CLI_CLIENT_IDENTIFIER,
+  GROK_CLI_CLIENT_MODE,
   GROK_CLI_MODEL,
+  GROK_CLI_REFERRER,
+  GROK_CLI_TOKEN_AUTH,
   GROK_CLI_USER_AGENT,
+  GROK_CLI_USER_DEVICE_SCOPE,
   GROK_CLI_VERSION,
 } from "../../config/grokCli.js";
 
@@ -30,30 +35,36 @@ export default {
     website: "https://x.ai",
     notice: {
       text: "Sign in with your xAI / Grok account via device code. Uses Grok Build subscription credits (cli-chat-proxy.grok.com).",
-      signupUrl: "https://grok.com/supergrok",
+      signupUrl: "https://grok.com/supergrok?referrer=grok-build",
     },
   },
   category: "oauth",
   authModes: ["oauth"],
   hasOAuth: true,
   thinkingConfig: {
+    // Binary: low | medium | high | xhigh (max → xhigh)
     options: ["low", "medium", "high", "xhigh"],
-    defaultMode: "high",
+    defaultMode: "xhigh",
   },
   transport: {
     baseUrl: `${GROK_CLI_BASE_URL}/responses`,
     format: "openai-responses",
+    // Binary docs: most proxy models only support streaming
     forceStream: true,
     modelsUrl: `${GROK_CLI_BASE_URL}/models`,
     userUrl: `${GROK_CLI_BASE_URL}/user`,
     billingUrl: `${GROK_CLI_BASE_URL}/billing`,
     clientVersion: GROK_CLI_VERSION,
     clientIdentifier: GROK_CLI_CLIENT_IDENTIFIER,
-    tokenAuth: "xai-grok-cli",
+    tokenAuth: GROK_CLI_TOKEN_AUTH,
     headers: {
       "User-Agent": GROK_CLI_USER_AGENT,
+      // Required by auth middleware (binary README curl table)
+      "X-XAI-Token-Auth": GROK_CLI_TOKEN_AUTH,
       "x-grok-client-identifier": GROK_CLI_CLIENT_IDENTIFIER,
       "x-grok-client-version": GROK_CLI_VERSION,
+      // Server-side gateway acts as headless CLI client
+      "x-grok-client-mode": GROK_CLI_CLIENT_MODE,
     },
     // Quota tracker: official CLI polls billing?format=credits + user?include=subscription
     usage: {
@@ -67,8 +78,14 @@ export default {
     },
   },
   models: [
+    // Default first: virtual effort model → upstream grok-4.5 + reasoning.effort=xhigh
     {
       id: GROK_CLI_MODEL,
+      name: "Grok 4.5 (xHigh)",
+      upstreamModelId: "grok-4.5",
+    },
+    {
+      id: "grok-build",
       name: "Grok Build",
       contextLength: 500000,
       maxOutputTokens: 64000,
@@ -87,10 +104,14 @@ export default {
     deviceCodeUrl: "https://auth.x.ai/oauth2/device/code",
     tokenUrl: "https://auth.x.ai/oauth2/token",
     refreshUrl: "https://auth.x.ai/oauth2/token",
-    // HAR scope includes conversations read/write beyond the api-only xai scope
-    scope:
-      "openid profile email offline_access grok-cli:access api:access conversations:read conversations:write",
-    referrer: "grok-build",
-    refreshLeadMs: 5 * 60 * 1000,
+    // User device-code scopes — single source GROK_CLI_USER_DEVICE_SCOPE
+    // (no team:read; auth.x.ai rejects it for User principals).
+    scope: GROK_CLI_USER_DEVICE_SCOPE,
+    referrer: GROK_CLI_REFERRER,
+    // Binary early-invalidation default is 300s, but multi-account pools need a
+    // wider warm window so OAuthWarm / request-path refresh rotate before the
+    // selected account hits a cold 401 mid-stream. 30m matches the prior
+    // invalid_grant race fix (refreshLead 5m→30m).
+    refreshLeadMs: 30 * 60 * 1000,
   },
 };

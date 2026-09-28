@@ -85,8 +85,20 @@ export function translateRequest(sourceFormat, targetFormat, model, body, stream
     // Direct route: if a translator is registered for this exact source:target
     // pair, use it instead of pivoting through OpenAI. This is lossless for
     // pairs like claude:kiro (avoids the claude->openai->kiro double-hop).
-    const directFn = requestRegistry.get(`${sourceFormat}:${targetFormat}`);
-    if (directFn) {
+    //
+    // claude→openai-responses is registered for Grok CLI quality, but codex also
+    // targets openai-responses — keep the OpenAI pivot for non-allowlisted providers.
+    const directKey = `${sourceFormat}:${targetFormat}`;
+    const directFn = requestRegistry.get(directKey);
+    const allowDirectClaudeResponses =
+      sourceFormat === FORMATS.CLAUDE &&
+      targetFormat === FORMATS.OPENAI_RESPONSES &&
+      isGrokCliDirectResponsesProvider(provider);
+    const useDirect =
+      !!directFn &&
+      (directKey !== `${FORMATS.CLAUDE}:${FORMATS.OPENAI_RESPONSES}` || allowDirectClaudeResponses);
+
+    if (useDirect) {
       result = directFn(model, result, stream, credentials);
     } else {
       // Step 1: source -> openai (if source is not openai)
@@ -177,8 +189,19 @@ export function translateResponse(targetFormat, sourceFormat, chunk, state) {
   // target:source pair, use it instead of pivoting through OpenAI. Mirrors the
   // request-side direct route (e.g. kiro:claude — KiroExecutor already emits
   // OpenAI-shaped chunks, so this converts them straight to Claude SSE).
-  const directFn = responseRegistry.get(`${targetFormat}:${sourceFormat}`);
-  if (directFn) {
+  //
+  // openai-responses→claude is only for grok-cli (see request-side allowlist).
+  const directKey = `${targetFormat}:${sourceFormat}`;
+  const directFn = responseRegistry.get(directKey);
+  const allowDirectResponsesClaude =
+    targetFormat === FORMATS.OPENAI_RESPONSES &&
+    sourceFormat === FORMATS.CLAUDE &&
+    isGrokCliDirectResponsesProvider(state?.provider);
+  const useDirect =
+    !!directFn &&
+    (directKey !== `${FORMATS.OPENAI_RESPONSES}:${FORMATS.CLAUDE}` || allowDirectResponsesClaude);
+
+  if (useDirect) {
     const converted = directFn(chunk, state);
     const directResults = converted ? (Array.isArray(converted) ? converted : [converted]) : [];
     return restoreToolNames(directResults, state?.toolNameMap);
@@ -281,6 +304,11 @@ export function initTranslators() {
   ensureInitialized();
 }
 
+/** Providers allowed to use the claude↔openai-responses direct route (not codex). */
+export function isGrokCliDirectResponsesProvider(provider) {
+  return provider === "grok-cli" || provider === "gcli";
+}
+
 // Static side-effect imports: each module calls register() at load (works in ESM + bundler).
 import "./request/claude-to-openai.js";
 import "./request/openai-to-claude.js";
@@ -289,6 +317,7 @@ import "./request/openai-to-gemini.js";
 import "./request/openai-to-vertex.js";
 import "./request/antigravity-to-openai.js";
 import "./request/openai-responses.js";
+import "./request/claude-to-openai-responses.js";
 import "./request/openai-to-kiro.js";
 import "./request/openai-to-cursor.js";
 import "./request/openai-to-ollama.js";
@@ -299,6 +328,7 @@ import "./response/openai-to-claude.js";
 import "./response/gemini-to-openai.js";
 import "./response/openai-to-antigravity.js";
 import "./response/openai-responses.js";
+import "./response/openai-responses-to-claude.js";
 import "./response/kiro-to-openai.js";
 import "./response/cursor-to-openai.js";
 import "./response/ollama-to-openai.js";

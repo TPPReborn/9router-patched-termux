@@ -61,6 +61,8 @@ export {
   refreshProviderCredentials,
   mergeRefreshedCredentials,
   mergeProviderSpecificData,
+  setConnectionLoader,
+  getConnectionLoader,
 } from "./services/oauthCredentialManager.js";
 
 // Handlers

@@ -60,15 +60,59 @@ export async function GET() {
       }
     } catch { }
 
-    // Hide sensitive fields, enrich name for compatible providers
+    // Hide sensitive fields, enrich name for compatible providers.
+    // For grok-cli: surface botFlag from JWT accessToken (decoded server-side)
+    // so the dashboard can filter/badge without shipping the raw token.
+    let decodeJwtPayload = null;
+    try {
+      ({ decodeJwtPayload } = await import("open-sse/config/grokCli.js"));
+    } catch {
+      decodeJwtPayload = null;
+    }
+
     const safeConnections = connections.map(c => {
       const isCompatible = isOpenAICompatibleProvider(c.provider) || isAnthropicCompatibleProvider(c.provider);
       const name = isCompatible
         ? (c.name || nodeNameMap[c.provider] || c.providerSpecificData?.nodeName || c.provider)
         : c.name;
+
+      let botFlagSource =
+        c?.providerSpecificData?.botFlagSource ??
+        c?.providerSpecificData?.bot_flag_source ??
+        null;
+      let botFlag = false;
+      if (c.provider === "grok-cli" || c.provider === "gcli") {
+        if (
+          (botFlagSource === undefined || botFlagSource === null) &&
+          typeof decodeJwtPayload === "function" &&
+          c.accessToken
+        ) {
+          try {
+            const payload = decodeJwtPayload(c.accessToken);
+            if (payload && payload.bot_flag_source !== undefined && payload.bot_flag_source !== null) {
+              botFlagSource = payload.bot_flag_source;
+            }
+          } catch {
+            /* ignore decode failures */
+          }
+        }
+        botFlag =
+          botFlagSource === 1 ||
+          botFlagSource === "1" ||
+          botFlagSource === true ||
+          (typeof botFlagSource === "number" && botFlagSource > 0) ||
+          (typeof botFlagSource === "string" &&
+            botFlagSource !== "" &&
+            botFlagSource !== "0" &&
+            botFlagSource !== "false");
+      }
+
       return {
         ...c,
         name,
+        // Safe derived flags only — never return raw secrets.
+        botFlag,
+        botFlagSource: botFlag ? botFlagSource : botFlagSource ?? null,
         apiKey: undefined,
         accessToken: undefined,
         refreshToken: undefined,

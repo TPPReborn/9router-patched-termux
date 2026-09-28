@@ -6,7 +6,7 @@ import PropTypes from "prop-types";
 import { Badge, Toggle, Tooltip } from "@/shared/components";
 import CooldownTimer from "./CooldownTimer";
 
-export default function ConnectionRow({ connection, proxyPools, isOAuth, isFirst, isLast, onMoveUp, onMoveDown, onToggleActive, onUpdateProxy, onEdit, onDelete, oneByOneStatus = null, autoPing = null }) {
+export default function ConnectionRow({ connection, proxyPools, isOAuth, isFirst, isLast, onMoveUp, onMoveDown, onToggleActive, onUpdateProxy, onEdit, onDelete, oneByOneStatus = null, autoPing = null, monitor = null, onErrorClick = null }) {
   const [showProxyDropdown, setShowProxyDropdown] = useState(false);
   const [updatingProxy, setUpdatingProxy] = useState(false);
   const proxyDropdownRef = useRef(null);
@@ -176,11 +176,38 @@ export default function ConnectionRow({ connection, proxyPools, isOAuth, isFirst
               </Badge>
             )}
             {isCooldown && connection.isActive !== false && <CooldownTimer until={modelLockUntil} />}
-            {connection.lastError && connection.isActive !== false && (
-              <span className="max-w-full truncate text-xs text-red-500 sm:max-w-[300px]" title={connection.lastError}>
-                {connection.lastError}
-              </span>
-            )}
+            {(() => {
+              const hasErr =
+                (connection.errorCode != null && connection.errorCode !== "") ||
+                !!connection.lastError ||
+                connection.testStatus === "error" ||
+                connection.testStatus === "unavailable";
+              if (!hasErr) return null;
+              const code =
+                connection.errorCode != null && connection.errorCode !== ""
+                  ? String(connection.errorCode)
+                  : connection.testStatus === "error" || connection.testStatus === "unavailable"
+                    ? connection.testStatus
+                    : "error";
+              const msg = connection.lastError || "—";
+              const full = `${code}:${msg}`;
+              const clickable = typeof onErrorClick === "function";
+              const Comp = clickable ? "button" : "span";
+              return (
+                <Comp
+                  type={clickable ? "button" : undefined}
+                  onClick={clickable ? (e) => { e.stopPropagation(); onErrorClick(connection); } : undefined}
+                  className={`max-w-full truncate text-left font-mono text-[11px] text-red-500 sm:max-w-[min(100%,32rem)] ${
+                    clickable
+                      ? "cursor-pointer rounded px-0.5 underline decoration-red-400/50 underline-offset-2 hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-300"
+                      : ""
+                  }`}
+                  title={clickable ? `${full} · click for details` : full}
+                >
+                  {full}
+                </Comp>
+              );
+            })()}
             <span className="text-xs text-text-muted">#{connection.priority}</span>
             {connection.globalPriority && (
               <span className="text-xs text-text-muted">Auto: {connection.globalPriority}</span>
@@ -191,6 +218,84 @@ export default function ConnectionRow({ connection, proxyPools, isOAuth, isFirst
               </Badge>
             )}
           </div>
+          {/* Grok-cli live usage — under Active / OAuth badges */}
+          {monitor && (
+            <div
+              className="mt-1.5 flex min-w-0 flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center"
+              aria-live="polite"
+            >
+              {monitor.loading && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-500/20 bg-sky-500/10 px-2 py-0.5 text-[11px] font-medium text-sky-700 dark:text-sky-300">
+                  <span className="material-symbols-outlined animate-spin text-[14px]">progress_activity</span>
+                  Loading usage
+                </span>
+              )}
+              {!monitor.loading && monitor.error && !monitor.summary?.requestsLabel && !monitor.summary?.tokensLabel && (
+                <span
+                  className="inline-flex max-w-full items-center gap-1 truncate rounded-full border border-rose-500/25 bg-rose-500/10 px-2 py-0.5 text-[11px] font-medium text-rose-600 dark:text-rose-300"
+                  title={monitor.error}
+                >
+                  <span className="material-symbols-outlined text-[14px]">error</span>
+                  {monitor.error}
+                </span>
+              )}
+              {!monitor.loading && (monitor.summary?.requestsLabel || monitor.summary?.tokensLabel) && (
+                <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                  {/* remaining/limit only — rate-limit headers from probe=1 */}
+                  {monitor.summary?.requestsLabel && (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full border border-sky-500/25 bg-gradient-to-r from-sky-500/15 to-sky-500/5 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-sky-800 dark:text-sky-200"
+                      title="remaining/limit requests"
+                    >
+                      <span className="material-symbols-outlined text-[14px] text-sky-600 dark:text-sky-400">
+                        bolt
+                      </span>
+                      <span>{monitor.summary.requestsLabel}</span>
+                      <span className="font-normal opacity-70">req</span>
+                    </span>
+                  )}
+                  {monitor.summary?.tokensLabel && (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full border border-violet-500/25 bg-gradient-to-r from-violet-500/15 to-violet-500/5 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-violet-800 dark:text-violet-200"
+                      title="remaining/limit tokens"
+                    >
+                      <span className="material-symbols-outlined text-[14px] text-violet-600 dark:text-violet-400">
+                        token
+                      </span>
+                      <span>{monitor.summary.tokensLabel}</span>
+                      <span className="font-normal opacity-70">tok</span>
+                    </span>
+                  )}
+                </div>
+              )}
+              {!monitor.loading &&
+                !monitor.error &&
+                !monitor.summary?.requestsLabel &&
+                !monitor.summary?.tokensLabel && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-black/10 bg-black/[0.03] px-2 py-0.5 text-[11px] text-text-muted dark:border-white/10 dark:bg-white/[0.04]">
+                    <span className="material-symbols-outlined text-[14px]">info</span>
+                    No rate-limit data
+                  </span>
+                )}
+              {/* Bot flag badge — only when JWT accessToken has bot_flag_source */}
+              {connection.botFlag && (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full border border-amber-500/35 bg-gradient-to-r from-amber-500/20 to-orange-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-800 dark:text-amber-200"
+                  title={`bot_flag_source=${connection.botFlagSource ?? "present"} (JWT claim from auth.x.ai)`}
+                >
+                  <span className="material-symbols-outlined text-[14px] text-amber-600 dark:text-amber-400">
+                    smart_toy
+                  </span>
+                  Bot Flag
+                  {connection.botFlagSource != null && connection.botFlagSource !== true && (
+                    <span className="font-mono font-normal opacity-80">
+                      ={String(connection.botFlagSource)}
+                    </span>
+                  )}
+                </span>
+              )}
+            </div>
+          )}
           {hasAnyProxy && (
             <div className="mt-1 flex items-center gap-2 flex-wrap">
               <span className="max-w-full truncate text-[11px] text-text-muted sm:max-w-[420px]" title={proxyDisplayText}>
@@ -315,4 +420,11 @@ ConnectionRow.propTypes = {
     onToggle: PropTypes.func,
     provider: PropTypes.string,
   }),
+  monitor: PropTypes.shape({
+    loading: PropTypes.bool,
+    error: PropTypes.string,
+    summary: PropTypes.object,
+    billingHint: PropTypes.string,
+  }),
+  onErrorClick: PropTypes.func,
 };

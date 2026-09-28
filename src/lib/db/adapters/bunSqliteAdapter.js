@@ -2,13 +2,35 @@
 // Loaded only when process.versions.bun is present.
 import { PRAGMA_SQL } from "../schema.js";
 
-const CHECKPOINT_INTERVAL_MS = 60 * 1000;
+const CHECKPOINT_INTERVAL_MS = 5 * 60 * 1000;
+const BUSY_TIMEOUT_MS = 30_000;
+const BUSY_RETRIES = 6;
+
+function isBusyError(e) {
+  return !!e && (e.code === "SQLITE_BUSY" || /database is locked|SQLITE_BUSY/i.test(String(e.message || e)));
+}
+
+function withBusyRetry(fn) {
+  let last;
+  for (let i = 0; i < BUSY_RETRIES; i++) {
+    try {
+      return fn();
+    } catch (e) {
+      last = e;
+      if (!isBusyError(e) || i === BUSY_RETRIES - 1) throw e;
+      const ms = Math.min(1000, 25 * 2 ** i);
+      const end = Date.now() + ms;
+      while (Date.now() < end) { /* sync backoff */ }
+    }
+  }
+  throw last;
+}
 
 export async function createBunSqliteAdapter(filePath) {
-  // Dynamic import — only resolves under Bun runtime
   const { Database } = await import("bun:sqlite");
   const db = new Database(filePath, { create: true });
   db.exec(PRAGMA_SQL);
+  try { db.exec(`PRAGMA busy_timeout = ${BUSY_TIMEOUT_MS}`); } catch {}
 
   const stmtCache = new Map();
   function prepare(sql) {
@@ -21,7 +43,7 @@ export async function createBunSqliteAdapter(filePath) {
   }
 
   const checkpointTimer = setInterval(() => {
-    try { db.exec("PRAGMA wal_checkpoint(TRUNCATE)"); } catch {}
+    try { db.exec("PRAGMA wal_checkpoint(PASSIVE)"); } catch {}
   }, CHECKPOINT_INTERVAL_MS);
   if (typeof checkpointTimer.unref === "function") checkpointTimer.unref();
 
@@ -38,22 +60,29 @@ export async function createBunSqliteAdapter(filePath) {
   return {
     driver: "bun:sqlite",
     run(sql, params = []) {
-      const r = prepare(sql).run(...params);
-      return { changes: Number(r.changes ?? 0), lastInsertRowid: Number(r.lastInsertRowid ?? 0) };
+      return withBusyRetry(() => {
+        const r = prepare(sql).run(...params);
+        return { changes: Number(r.changes ?? 0), lastInsertRowid: Number(r.lastInsertRowid ?? 0) };
+      });
     },
     get(sql, params = []) {
-      return prepare(sql).get(...params);
+      return withBusyRetry(() => prepare(sql).get(...params));
     },
     all(sql, params = []) {
-      return prepare(sql).all(...params);
+      return withBusyRetry(() => prepare(sql).all(...params));
     },
-    exec(sql) { return db.exec(sql); },
+    exec(sql) {
+      return withBusyRetry(() => db.exec(sql));
+    },
     transaction(fn) {
-      // bun:sqlite has db.transaction() API (similar to better-sqlite3)
-      const tx = db.transaction(fn);
-      return tx();
+      return withBusyRetry(() => {
+        const tx = db.transaction(fn);
+        return tx();
+      });
     },
-    checkpoint() { try { db.exec("PRAGMA wal_checkpoint(TRUNCATE)"); } catch {} },
+    checkpoint() {
+      try { db.exec("PRAGMA wal_checkpoint(PASSIVE)"); } catch {}
+    },
     close() {
       clearInterval(checkpointTimer);
       gracefulClose();

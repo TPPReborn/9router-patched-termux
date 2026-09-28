@@ -1,7 +1,9 @@
 import {
   GROK_CLI_BASE_URL,
   GROK_CLI_CLIENT_IDENTIFIER,
+  GROK_CLI_CLIENT_MODE,
   GROK_CLI_MODEL,
+  GROK_CLI_TOKEN_AUTH,
   GROK_CLI_USER_AGENT,
   GROK_CLI_VERSION,
 } from "../config/grokCli.js";
@@ -43,7 +45,8 @@ export function parseGrokCliModels(data) {
     if (Number.isFinite(maxOutputTokens) && maxOutputTokens > 0) {
       model.maxOutputTokens = maxOutputTokens;
     }
-    if (id === GROK_CLI_MODEL) {
+    // Official default agent model keeps large context even when /models omits it.
+    if (id === "grok-build" || id === GROK_CLI_MODEL) {
       model.contextLength ||= 500000;
       model.maxOutputTokens ||= 64000;
     }
@@ -58,10 +61,10 @@ function buildHeaders(accessToken, providerSpecificData = {}) {
     Authorization: `Bearer ${accessToken}`,
     Accept: "application/json",
     "User-Agent": GROK_CLI_USER_AGENT,
-    "x-xai-token-auth": "xai-grok-cli",
+    "X-XAI-Token-Auth": GROK_CLI_TOKEN_AUTH,
     "x-grok-client-version": GROK_CLI_VERSION,
     "x-grok-client-identifier": GROK_CLI_CLIENT_IDENTIFIER,
-    "x-grok-client-mode": "headless",
+    "x-grok-client-mode": GROK_CLI_CLIENT_MODE,
   };
   const email = providerSpecificData?.email;
   const userId = providerSpecificData?.userId || providerSpecificData?.principalId;

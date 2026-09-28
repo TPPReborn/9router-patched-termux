@@ -26,6 +26,8 @@ import { proxyAwareFetch } from "../../utils/proxyFetch.js";
 import { U, parseResetTime, toFiniteNumber } from "./shared.js";
 import {
   GROK_CLI_CLIENT_IDENTIFIER,
+  GROK_CLI_CLIENT_MODE,
+  GROK_CLI_TOKEN_AUTH,
   GROK_CLI_USER_AGENT,
   GROK_CLI_VERSION,
 } from "../../config/grokCli.js";
@@ -57,10 +59,10 @@ function buildGrokCliHeaders(accessToken, providerSpecificData = {}) {
     Authorization: `Bearer ${accessToken}`,
     Accept: "application/json",
     "User-Agent": GROK_CLI_USER_AGENT,
-    "x-xai-token-auth": "xai-grok-cli",
+    "X-XAI-Token-Auth": GROK_CLI_TOKEN_AUTH,
     "x-grok-client-identifier": GROK_CLI_CLIENT_IDENTIFIER,
     "x-grok-client-version": GROK_CLI_VERSION,
-    "x-grok-client-mode": "headless",
+    "x-grok-client-mode": GROK_CLI_CLIENT_MODE,
   };
   const email = psd.email;
   const userId = psd.userId || psd.principalId;

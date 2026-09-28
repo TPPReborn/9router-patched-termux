@@ -10,6 +10,22 @@ export const CODEX_MAX_REFRESH_AGE_MS = PROVIDER_OAUTH["codex"]?.maxRefreshAgeMs
 
 const refreshLocks = new Map();
 
+/**
+ * Optional app-layer hook: re-read a connection from DB by id.
+ * open-sse stays free of src/ imports; the dashboard wires this via setConnectionLoader.
+ * @type {null | ((connectionId: string) => Promise<object|null>)}
+ */
+let connectionLoader = null;
+
+/** Register DB loader for single-use RT re-read under the refresh gate. */
+export function setConnectionLoader(fn) {
+  connectionLoader = typeof fn === "function" ? fn : null;
+}
+
+export function getConnectionLoader() {
+  return connectionLoader;
+}
+
 function parseTimeMs(value) {
   if (value === undefined || value === null || value === "") return null;
   if (typeof value === "number") {
@@ -20,13 +36,33 @@ function parseTimeMs(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+/** Decode JWT `exp` (seconds) → ms. No signature verify — expiry only. */
+export function getJwtExpiryMs(accessToken) {
+  if (!accessToken || typeof accessToken !== "string") return null;
+  const parts = accessToken.split(".");
+  if (parts.length < 2) return null;
+  try {
+    const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const pad = (4 - (b64.length % 4)) % 4;
+    const payload = JSON.parse(Buffer.from(b64 + "=".repeat(pad), "base64").toString("utf8"));
+    return typeof payload.exp === "number" ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
 function toExpiresAt(expiresIn, nowMs = Date.now()) {
   if (!expiresIn) return null;
   return new Date(nowMs + expiresIn * 1000).toISOString();
 }
 
 export function getCredentialExpiryMs(credentials) {
-  return parseTimeMs(credentials?.expiresAt ?? credentials?.tokenExpiresAt);
+  // Prefer stored expiresAt; fall back to JWT exp so proactive refresh still
+  // fires when mapTokens/DB omitted absolute expiry (pre-#2546 rows, partial imports).
+  return (
+    parseTimeMs(credentials?.expiresAt ?? credentials?.tokenExpiresAt) ??
+    getJwtExpiryMs(credentials?.accessToken)
+  );
 }
 
 export function getCredentialLastRefreshMs(credentials) {
@@ -149,8 +185,103 @@ export async function withCredentialRefreshLock(provider, credentials, refreshFn
 export async function refreshProviderCredentials(provider, credentials, log) {
   if (!credentials) return null;
 
-  return withCredentialRefreshLock(provider, credentials, async () => {
-    const refreshed = await refreshTokenByProvider(provider, credentials, log);
-    return mergeRefreshedCredentials(provider, credentials, refreshed);
-  });
+  const connectionId = credentials.connectionId || credentials.id || null;
+  const singleUse =
+    provider === "grok-cli" || provider === "gcli" || provider === "xai";
+
+  // Pure open-sse: in-process lock + optional cross-process gate.
+  // DB re-read uses injected connectionLoader (wired by app layer).
+  const runWith = (creds) =>
+    withCredentialRefreshLock(provider, creds, async () => {
+      let live = creds;
+
+      // Under gate: re-adopt RT from DB so we never HTTP-refresh a rotated token.
+      if (singleUse && connectionId && connectionLoader) {
+        try {
+          const row = await connectionLoader(connectionId);
+          if (!row || row.isActive === false) {
+            log?.warn?.("TOKEN_REFRESH", "connection missing/inactive under gate", {
+              provider,
+              connectionId,
+            });
+            return null;
+          }
+          if (row.refreshToken && row.refreshToken !== creds.refreshToken) {
+            log?.info?.("TOKEN_REFRESH", "adopted rotated RT under gate — skip network", {
+              provider,
+              connectionId,
+            });
+            // Return current DB tokens (another writer already rotated).
+            return mergeRefreshedCredentials(provider, creds, {
+              accessToken: row.accessToken,
+              refreshToken: row.refreshToken,
+              expiresAt: row.expiresAt,
+              expiresIn: row.expiresIn,
+              lastRefreshAt: row.lastRefreshAt,
+              idToken: row.idToken,
+            });
+          }
+          // Same RT — still refresh only if near expiry; else return DB AT.
+          if (!shouldRefreshCredentials(provider, { ...row, connectionId }) && row.accessToken) {
+            return mergeRefreshedCredentials(provider, creds, {
+              accessToken: row.accessToken,
+              refreshToken: row.refreshToken,
+              expiresAt: row.expiresAt,
+              expiresIn: row.expiresIn,
+              lastRefreshAt: row.lastRefreshAt,
+              idToken: row.idToken,
+            });
+          }
+          live = {
+            ...creds,
+            ...row,
+            connectionId,
+            refreshToken: row.refreshToken ?? creds.refreshToken,
+            accessToken: row.accessToken ?? creds.accessToken,
+            expiresAt: row.expiresAt ?? creds.expiresAt,
+            expiresIn: row.expiresIn ?? creds.expiresIn,
+          };
+        } catch (e) {
+          log?.debug?.("TOKEN_REFRESH", `connectionLoader failed: ${e?.message || e}`);
+        }
+      }
+
+      const refreshed = await refreshTokenByProvider(provider, live, log);
+      return mergeRefreshedCredentials(provider, live, refreshed);
+    });
+
+  if (singleUse && connectionId) {
+    // open-sse-local gate — no src/ import (webpack-safe).
+    const { withRefreshGate } = await import("./tokenRefresh/refreshGate.js");
+    const gate = await withRefreshGate(connectionId, () => runWith(credentials));
+    if (!gate.acquired) {
+      log?.warn?.("TOKEN_REFRESH", "refresh gate busy — skip network refresh", {
+        provider,
+        connectionId,
+        reason: gate.reason,
+      });
+      // Best-effort: if loader available, return current DB tokens instead of null.
+      if (connectionLoader) {
+        try {
+          const row = await connectionLoader(connectionId);
+          if (row?.accessToken) {
+            return mergeRefreshedCredentials(provider, credentials, {
+              accessToken: row.accessToken,
+              refreshToken: row.refreshToken,
+              expiresAt: row.expiresAt,
+              expiresIn: row.expiresIn,
+              lastRefreshAt: row.lastRefreshAt,
+              idToken: row.idToken,
+            });
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+      return null;
+    }
+    return gate.result;
+  }
+
+  return runWith(credentials);
 }
