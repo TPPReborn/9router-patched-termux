@@ -1,9 +1,0 @@
-{
-  "id": "d37eb7bc-99b6-4d53-bd5b-551ff602354d",
-  "email": "jhv90sbkfm7a@xiik.donmo.tech",
-  "name": "jhv90sbkfm7a@xiik.donmo.tech",
-  "exp_in": 21177,
-  "scope": "openid profile email offline_access grok-cli:access api:access conversations:read conversations:write workspaces:read",
-  "authMethod": "device_code",
-  "hasGrokCodeAccess": true
-}
