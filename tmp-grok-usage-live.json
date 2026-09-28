@@ -1,0 +1,93 @@
+{
+  "account": {
+    "id": "634d8a07-c106-4715-a10e-4a31b99d22f9",
+    "email": "1xtdpnd8i1ie@bosv.poj.me",
+    "displayName": "Andrea Williams",
+    "remaining_h": 1.18
+  },
+  "endpoints": {
+    "https://cli-chat-proxy.grok.com/v1/billing?format=credits": {
+      "status": 200,
+      "headers": {},
+      "keys": [
+        "config"
+      ]
+    },
+    "https://cli-chat-proxy.grok.com/v1/user?include=subscription": {
+      "status": 200,
+      "headers": {},
+      "keys": [
+        "userId",
+        "email",
+        "firstName",
+        "lastName",
+        "profileImageAssetId",
+        "userBlockedReason",
+        "principalType",
+        "principalId",
+        "teamId",
+        "teamName",
+        "teamRole",
+        "teamBlockedReasons",
+        "organizationId",
+        "organizationName",
+        "organizationRole",
+        "organizationRbacRoleId",
+        "organizationType",
+        "codingDataRetentionOptOut",
+        "hasGrokCodeAccess",
+        "subscriptionTier"
+      ]
+    },
+    "https://cli-chat-proxy.grok.com/v1/user": {
+      "status": 200,
+      "headers": {},
+      "keys": [
+        "userId",
+        "email",
+        "firstName",
+        "lastName",
+        "profileImageAssetId",
+        "userBlockedReason",
+        "principalType",
+        "principalId",
+        "teamId",
+        "teamName",
+        "teamRole",
+        "teamBlockedReasons",
+        "organizationId",
+        "organizationName",
+        "organizationRole",
+        "organizationRbacRoleId",
+        "organizationType",
+        "codingDataRetentionOptOut",
+        "hasGrokCodeAccess"
+      ]
+    },
+    "https://cli-chat-proxy.grok.com/v1/models": {
+      "status": 200,
+      "headers": {},
+      "keys": [
+        "object",
+        "data"
+      ]
+    },
+    "https://cli-chat-proxy.grok.com/v1/usage": {
+      "status": 404,
+      "headers": {},
+      "keys": null
+    },
+    "https://cli-chat-proxy.grok.com/v1/usage/usage": {
+      "status": 404,
+      "headers": {},
+      "keys": null
+    },
+    "https://cli-chat-proxy.grok.com/v1/billing": {
+      "status": 200,
+      "headers": {},
+      "keys": [
+        "config"
+      ]
+    }
+  }
+}

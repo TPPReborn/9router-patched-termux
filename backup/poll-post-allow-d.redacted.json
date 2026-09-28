@@ -1,0 +1,8 @@
+{
+  "access_token": "[REDACTED]",
+  "token_type": "Bearer",
+  "expires_in": 21600,
+  "refresh_token": "[REDACTED]",
+  "scope": "openid profile email offline_access grok-cli:access api:access conversations:read conversations:write workspaces:read",
+  "id_token": "[REDACTED]"
+}

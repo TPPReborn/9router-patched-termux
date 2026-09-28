@@ -1,0 +1,1001 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# grok-management - disable/enable grok-cli accounts by lastError / error code
+set -euo pipefail
+
+DB_PATH="${NINEROUTER_DB:-/data/data/com.termux/files/usr/var/lib/9router/db/data.sqlite}"
+PROVIDER="grok-cli"
+
+RED=$'\033[0;31m'
+GREEN=$'\033[0;32m'
+YELLOW=$'\033[1;33m'
+BLUE=$'\033[0;34m'
+CYAN=$'\033[0;36m'
+BOLD=$'\033[1m'
+DIM=$'\033[2m'
+NC=$'\033[0m'
+
+die() { echo "${RED}Error:${NC} $*" >&2; exit 1; }
+need_db() { [[ -f "$DB_PATH" ]] || die "Database not found: $DB_PATH"; }
+need_sqlite() { command -v sqlite3 >/dev/null || die "sqlite3 not found"; }
+
+cols() {
+  local c="${COLUMNS:-}"
+  [[ -n "$c" ]] || c=$(tput cols 2>/dev/null || echo 80)
+  [[ "$c" -ge 40 ]] || c=40
+  echo "$c"
+}
+
+sql() { sqlite3 "$DB_PATH" "$@"; }
+
+# Shared: request row is an error for this provider
+# (status=error | nested status | HTTP >=400). Scoped to PROVIDER.
+req_err_sql() {
+  cat <<SQL
+(
+  (r.provider = '$PROVIDER' OR r.connectionId IN (
+     SELECT id FROM providerConnections WHERE provider = '$PROVIDER'
+  ))
+  AND (
+    r.status = 'error'
+    OR IFNULL(json_extract(r.data, '\$.status'), '') = 'error'
+    OR CAST(json_extract(r.data, '\$.response.status') AS INTEGER) >= 400
+  )
+)
+SQL
+}
+
+# Live connection has a real error flag (non-null errorCode OR non-empty lastError)
+LIVE_ERR_SQL="(
+  (
+    json_extract(data, '\$.errorCode') IS NOT NULL
+    AND CAST(json_extract(data, '\$.errorCode') AS TEXT) != ''
+  )
+  OR (
+    json_extract(data, '\$.lastError') IS NOT NULL
+    AND length(trim(json_extract(data, '\$.lastError'))) > 0
+  )
+)"
+
+# Build MATCH filter.
+# $1 = filter (empty|all|lastError|any|402|429|subscription:...)
+# $2 = mode: "live" (connection fields only) | "any" (conn + requestDetails history)
+# Sets: FILTER_SQL, FILTER_LABEL
+build_filter() {
+  local f="${1:-}"
+  local mode="${2:-any}"
+  # normalize aliases → all
+  case "$f" in
+    ""|all|ALL|any|ANY|lastError|lasterror|LASTERROR|error|errors) f="all" ;;
+  esac
+  FILTER_LABEL="$f"
+  local esc="${f//\'/\'\'}"
+  local REQ_ERR
+  REQ_ERR=$(req_err_sql)
+
+  if [[ "$f" == "all" ]]; then
+    FILTER_LABEL="all"
+    if [[ "$mode" == "live" ]]; then
+      # only accounts with live errorCode / lastError — never history
+      FILTER_SQL="AND $LIVE_ERR_SQL"
+    else
+      FILTER_SQL="AND id IN (
+        SELECT id FROM providerConnections
+        WHERE provider = '$PROVIDER'
+          AND $LIVE_ERR_SQL
+        UNION
+        SELECT DISTINCT r.connectionId FROM requestDetails r
+        WHERE r.connectionId IS NOT NULL AND $REQ_ERR
+      )"
+    fi
+    return
+  fi
+
+  if [[ "$f" =~ ^[0-9]+$ ]]; then
+    # HTTP / numeric errorCode
+    local conn_match="(
+      CAST(json_extract(data, '\$.errorCode') AS TEXT) = '${esc}'
+      OR IFNULL(json_extract(data, '\$.lastError'), '') LIKE '[${esc}]%'
+      OR IFNULL(json_extract(data, '\$.lastError'), '') LIKE '%${esc}%'
+    )"
+    if [[ "$mode" == "live" ]]; then
+      FILTER_SQL="AND $LIVE_ERR_SQL AND $conn_match"
+    else
+      FILTER_SQL="AND id IN (
+        SELECT id FROM providerConnections
+        WHERE provider = '$PROVIDER'
+          AND $LIVE_ERR_SQL
+          AND $conn_match
+        UNION
+        SELECT DISTINCT r.connectionId FROM requestDetails r
+        WHERE r.connectionId IS NOT NULL
+          AND $REQ_ERR
+          AND (
+            CAST(json_extract(r.data, '\$.response.status') AS TEXT) = '${esc}'
+            OR CAST(json_extract(r.data, '\$.response.error') AS TEXT) LIKE '%${esc}%'
+          )
+      )"
+    fi
+    return
+  fi
+
+  # string token e.g. subscription:free-usage-exhausted | Token invalid | invalid_grant
+  local conn_str="(
+    CAST(json_extract(data, '\$.errorCode') AS TEXT) = '${esc}'
+    OR IFNULL(json_extract(data, '\$.lastError'), '') LIKE '%${esc}%'
+  )"
+  if [[ "$mode" == "live" ]]; then
+    FILTER_SQL="AND $LIVE_ERR_SQL AND $conn_str"
+  else
+    FILTER_SQL="AND id IN (
+      SELECT id FROM providerConnections
+      WHERE provider = '$PROVIDER'
+        AND $LIVE_ERR_SQL
+        AND $conn_str
+      UNION
+      SELECT DISTINCT r.connectionId FROM requestDetails r
+      WHERE r.connectionId IS NOT NULL
+        AND $REQ_ERR
+        AND (
+          CAST(json_extract(r.data, '\$.response.error') AS TEXT) LIKE '%${esc}%'
+          OR (
+            json_type(r.data, '\$.response.error') = 'object'
+            AND IFNULL(json_extract(r.data, '\$.response.error.code'), '') = '${esc}'
+          )
+        )
+    )"
+  fi
+}
+
+# SQL expr: hard-remove error keys from providerConnections.data
+# (json_remove deletes the key even when value is JSON null)
+CLEAR_DATA_SQL="json_remove(data, '\$.errorCode', '\$.lastError', '\$.lastErrorAt', '\$.backoffLevel')"
+
+# key still present in JSON (value may be null/empty) — use json_type
+HAS_ERR_KEYS_SQL="(
+  json_type(data, '\$.errorCode') IS NOT NULL
+  OR json_type(data, '\$.lastError') IS NOT NULL
+  OR json_type(data, '\$.lastErrorAt') IS NOT NULL
+  OR json_type(data, '\$.backoffLevel') IS NOT NULL
+)"
+
+show_help() {
+  cat <<HELP
+${BLUE}${BOLD}grok-management${NC} — check / disable / enable / clear / delete grok-cli accounts by error
+
+${YELLOW}USAGE${NC}
+  grok-management list
+  grok-management codes
+  grok-management check    [error_code]
+  grok-management disabled [error_code]
+  grok-management enabled  [error_code]
+  grok-management clear    [error_code]
+  grok-management delete   <error_code|message|string>
+  grok-management help
+
+${YELLOW}ARGS${NC}
+  list                   totals + connection errors + request errors (semua code)
+  codes                  inventory SEMUA error code (conn + request history)
+  check  [error_code]    preview akun match (default: all) — no write
+  disabled [error_code]  set isActive=0 ONLY if live errorCode/lastError
+                         (history requestDetails NEVER disables)
+  enabled  [error_code]  FORCE isActive=1 + clear error flags
+                         no arg / all → SEMUA akun disabled (tanpa filter error)
+                         with code    → disabled yang match code/message
+  clear  [error_code]    hapus flag error saja (errorCode/lastError/lastErrorAt/
+                         backoffLevel) — akun tetap, isActive tidak diubah
+  delete <error_code>    HAPUS akun match dari database (+ requestDetails orphan)
+                         wajib arg: code / message / substring lastError
+
+${YELLOW}ERROR_CODE${NC}
+  (default) / all / lastError / error
+              SEMUA akun error — connection fields ATAU requestDetails
+              (enabled: all = semua disabled, bukan hanya yang error-tagged)
+              (delete: WAJIB explicit arg — pakai 'all' untuk mass delete)
+  402 | 429 | 401 | 403 | 500 ...
+              numeric: data.errorCode ATAU response.status di history
+  subscription:free-usage-exhausted
+  Token invalid
+  invalid_grant
+              string: match lastError / response.error / nested .code
+
+${YELLOW}ENV${NC}
+  NINEROUTER_DB   override DB path
+                  default: $DB_PATH
+
+${YELLOW}EXAMPLES${NC}
+  grok-management list
+  grok-management codes
+  grok-management check 402
+  grok-management check "Token invalid"
+  grok-management disabled 429
+  grok-management enabled                  # force-enable ALL disabled
+  grok-management enabled all              # same
+  grok-management enabled 402
+  grok-management clear                    # clear all error flags
+  grok-management clear 429
+  grok-management clear "Token invalid"
+  grok-management delete 402               # delete accounts with 402
+  grok-management delete "Token invalid"
+  grok-management delete invalid_grant
+  grok-management delete all               # mass delete all error accounts
+HELP
+}
+
+# ── list ──────────────────────────────────────────────────────────────────────
+cmd_list() {
+  need_db
+  local W MSGW CODEW
+  W=$(cols)
+  # layout: | code(12) | msg | cnt(5) | act(5) | dis(5) |
+  CODEW=28
+  MSGW=$((W - CODEW - 5 - 5 - 5 - 11))
+  [[ $MSGW -ge 12 ]] || MSGW=12
+  [[ $MSGW -le 80 ]] || MSGW=80
+
+  # realtime counts — always fresh SELECT, no cache
+  local total active disabled
+  total=$(sql "SELECT COUNT(*) FROM providerConnections WHERE provider='$PROVIDER';")
+  active=$(sql "SELECT COUNT(*) FROM providerConnections WHERE provider='$PROVIDER' AND isActive=1;")
+  disabled=$(sql "SELECT COUNT(*) FROM providerConnections WHERE provider='$PROVIDER' AND isActive!=1;")
+
+  echo "${BLUE}${BOLD}grok-cli accounts${NC}  ${DIM}$DB_PATH${NC}  ${DIM}$(date -u +%Y-%m-%dT%H:%M:%SZ)${NC}"
+  printf "${BOLD}┌%-*s┐${NC}\n" $((W-2)) "$(printf '─%.0s' $(seq 1 $((W-2))))"
+  printf "│ ${CYAN}total${NC} %-6s  ${GREEN}active${NC} %-6s  ${RED}disabled${NC} %-6s%*s│\n" \
+    "$total" "$active" "$disabled" $((W - 2 - 8 - 6 - 9 - 6 - 11 - 6 - 2)) ""
+  printf "${BOLD}└%-*s┘${NC}\n" $((W-2)) "$(printf '─%.0s' $(seq 1 $((W-2))))"
+  echo
+
+  # live disabled accounts (realtime isActive!=1)
+  if [[ "$disabled" -gt 0 ]]; then
+    local DW
+    DW=$((W - 10 - 8 - 6 - 4))
+    [[ $DW -ge 16 ]] || DW=16
+    [[ $DW -le 70 ]] || DW=70
+    echo "${YELLOW}${BOLD}disabled accounts (live isActive!=1)${NC}"
+    printf "${DIM}%-10s %-8s %-6s %s${NC}\n" "id" "code" "active" "lastError"
+    sqlite3 -separator $'\t' "$DB_PATH" "
+SELECT
+  substr(id,1,8),
+  IFNULL(CAST(json_extract(data, '\$.errorCode') AS TEXT), '-'),
+  isActive,
+  substr(IFNULL(json_extract(data, '\$.lastError'), '(no error flag)'), 1, $DW)
+FROM providerConnections
+WHERE provider='$PROVIDER' AND isActive!=1
+ORDER BY datetime(updatedAt) DESC
+LIMIT 30;
+" | while IFS=$'\t' read -r id code act last; do
+      [[ -z "${id:-}" ]] && continue
+      printf "%-10s %-8s %-6s %s\n" "$id" "$code" "$act" "$last"
+    done
+    [[ "$disabled" -gt 30 ]] && echo "${DIM}... and $((disabled-30)) more${NC}"
+    echo
+  fi
+
+  CODEW=$CODEW MSGW=$MSGW RED="$RED" GREEN="$GREEN" BOLD="$BOLD" DIM="$DIM" NC="$NC" YELLOW="$YELLOW" \
+  python3 - "$DB_PATH" "$PROVIDER" <<'PY'
+import json, re, sqlite3, sys, os
+from collections import defaultdict
+
+db, provider = sys.argv[1], sys.argv[2]
+codew = int(os.environ.get("CODEW", "28"))
+msgw = int(os.environ.get("MSGW", "40"))
+RED, GREEN, BOLD, DIM, NC, YELLOW = (
+    os.environ.get(k, "") for k in ("RED", "GREEN", "BOLD", "DIM", "NC", "YELLOW")
+)
+
+con = sqlite3.connect(db)
+
+
+def nested_code(text: str):
+    if not text:
+        return None
+    m = re.search(r'"code"\s*:\s*"([^"]+)', text)
+    if m:
+        return m.group(1)
+    try:
+        i = text.find("{")
+        if i >= 0:
+            j = json.loads(text[i:])
+            if isinstance(j, dict) and j.get("code"):
+                return str(j["code"])
+    except Exception:
+        pass
+    return None
+
+
+def short_msg(text: str):
+    if not text or not str(text).strip():
+        return "(empty message)"
+    text = str(text)
+    m = re.search(r'"error"\s*:\s*"([^"]+)', text)
+    if m and m.group(1).strip():
+        return m.group(1).strip()
+    # plain string body (402 style)
+    if text.strip().startswith("{") is False and '"code"' not in text:
+        t = re.sub(r"^\s*\[\d+\]:\s*", "", text).strip()
+        return t.replace("\n", " ")
+    t = re.sub(r"^\s*\[\d+\]:\s*", "", text).strip()
+    return t.replace("\n", " ")
+
+
+def trunc(s, n):
+    s = s or ""
+    return s if len(s) <= n else s[: n - 1] + "…"
+
+
+def print_table(title, rows, cols):
+    """rows: list of tuples matching cols headers; last numeric cols right-aligned."""
+    print(f"{YELLOW}{BOLD}{title}{NC}")
+    headers = [c[0] for c in cols]
+    widths = [c[1] for c in cols]
+    aligns = [c[2] for c in cols]  # 'l' or 'r'
+    # header
+    parts = []
+    for h, w, a in zip(headers, widths, aligns):
+        parts.append(f"{h:>{w}}" if a == "r" else f"{h:<{w}}")
+    print(DIM + " ".join(parts) + NC)
+    print(DIM + " ".join("─" * w for w in widths) + NC)
+    if not rows:
+        print(f"{GREEN}(none){NC}")
+        print()
+        return
+    for row in rows:
+        parts = []
+        for val, w, a in zip(row, widths, aligns):
+            s = trunc(str(val), w)
+            parts.append(f"{s:>{w}}" if a == "r" else f"{s:<{w}}")
+        # color last 3 numeric-ish if present
+        line = " ".join(parts)
+        print(line)
+    print()
+
+
+# ── 1) live connection errors ───────────────────────────────────────────────
+conn_rows = con.execute(
+    """
+    SELECT id, data, isActive FROM providerConnections
+    WHERE provider=?
+      AND (
+        json_extract(data, '$.errorCode') IS NOT NULL
+        OR (
+          json_extract(data, '$.lastError') IS NOT NULL
+          AND length(trim(json_extract(data, '$.lastError'))) > 0
+        )
+      )
+    """,
+    (provider,),
+).fetchall()
+
+conn_agg = {}  # (code,msg) -> [cnt, act, dis]
+for _id, data_s, active in conn_rows:
+    try:
+        d = json.loads(data_s)
+    except Exception:
+        continue
+    ec = d.get("errorCode")
+    last = d.get("lastError") or ""
+    nest = nested_code(last)
+    if ec is not None and str(ec) != "":
+        code = f"{ec}/{nest}" if nest else str(ec)
+    else:
+        code = nest or "-"
+    msg = short_msg(last)
+    key = (code, msg)
+    cnt, act, dis = conn_agg.get(key, [0, 0, 0])
+    cnt += 1
+    if active == 1:
+        act += 1
+    else:
+        dis += 1
+    conn_agg[key] = [cnt, act, dis]
+
+conn_table = [
+    (code, msg, cnt, act, dis)
+    for (code, msg), (cnt, act, dis) in sorted(
+        conn_agg.items(), key=lambda kv: (-kv[1][0], kv[0][0], kv[0][1])
+    )
+]
+print_table(
+    "connection errors (live on accounts)",
+    conn_table,
+    [("CODE", codew, "l"), ("MESSAGE", msgw, "l"), ("CNT", 5, "r"), ("ACT", 5, "r"), ("DIS", 5, "r")],
+)
+print(f"{DIM}accounts with error fields: {len(conn_rows)}{NC}")
+print()
+
+# ── 2) requestDetails errors — ALL codes ever logged (provider-scoped) ─────
+req_rows = con.execute(
+    """
+    SELECT r.connectionId, r.status, r.data, c.isActive
+    FROM requestDetails r
+    LEFT JOIN providerConnections c ON c.id = r.connectionId
+    WHERE (r.provider = ? OR c.provider = ?)
+      AND (
+        r.status = 'error'
+        OR IFNULL(json_extract(r.data, '$.status'), '') = 'error'
+        OR CAST(json_extract(r.data, '$.response.status') AS INTEGER) >= 400
+      )
+    """,
+    (provider, provider),
+).fetchall()
+
+req_agg = {}  # (code,msg) -> [hits, accounts_set via separate]
+req_accounts = defaultdict(set)  # key -> set(connectionId)
+req_act = defaultdict(int)
+req_dis = defaultdict(int)
+
+for conn_id, status, data_s, is_active in req_rows:
+    try:
+        d = json.loads(data_s) if data_s else {}
+    except Exception:
+        d = {}
+    resp = d.get("response") if isinstance(d, dict) else None
+    if not isinstance(resp, dict):
+        resp = {}
+    http = resp.get("status")
+    err_raw = resp.get("error")
+    nest = None
+    msg = "(empty message)"
+    if isinstance(err_raw, dict):
+        nest = err_raw.get("code")
+        msg = short_msg(err_raw.get("error") or err_raw.get("message") or json.dumps(err_raw))
+    elif isinstance(err_raw, str):
+        nest = nested_code(err_raw)
+        msg = short_msg(err_raw)
+        # if body is plain text (402), keep it
+        if not nest and err_raw.strip():
+            msg = short_msg(err_raw)
+    if http is not None and str(http) != "":
+        code = f"{http}/{nest}" if nest else str(http)
+    else:
+        code = nest or status or "error"
+    # normalize quota messages that only differ by token counters
+    if nest == "subscription:free-usage-exhausted" or (
+        isinstance(msg, str) and "included free usage" in msg
+    ):
+        msg = "You've used all the included free usage (rolling 24h quota exceeded)"
+    if isinstance(msg, str) and "out of credits" in msg.lower():
+        msg = "You have run out of credits or need a Grok subscription"
+    key = (str(code), msg)
+    req_agg[key] = req_agg.get(key, 0) + 1
+    if conn_id:
+        req_accounts[key].add(conn_id)
+    if is_active == 1:
+        req_act[key] += 0  # counted per unique account below
+    elif is_active == 0:
+        pass
+
+# unique-account act/dis per key
+for key, ids in req_accounts.items():
+    act = dis = 0
+    for cid in ids:
+        row = con.execute(
+            "SELECT isActive FROM providerConnections WHERE id=?", (cid,)
+        ).fetchone()
+        if not row:
+            continue
+        if row[0] == 1:
+            act += 1
+        else:
+            dis += 1
+    req_act[key] = act
+    req_dis[key] = dis
+
+req_table = [
+    (code, msg, hits, len(req_accounts.get((code, msg), set())), req_act.get((code, msg), 0), req_dis.get((code, msg), 0))
+    for (code, msg), hits in sorted(req_agg.items(), key=lambda kv: (-kv[1], kv[0][0], kv[0][1]))
+]
+# shrink message col a bit for extra ACCTS column
+msgw2 = max(12, msgw - 6)
+req_table_fmt = [
+    (code, trunc(msg, msgw2), hits, accts, act, dis)
+    for code, msg, hits, accts, act, dis in req_table
+]
+print_table(
+    "request errors (history — not live flags)",
+    req_table_fmt,
+    [
+        ("CODE", codew, "l"),
+        ("MESSAGE", msgw2, "l"),
+        ("HITS", 5, "r"),
+        ("ACCT", 5, "r"),
+        ("ACT", 5, "r"),
+        ("DIS", 5, "r"),
+    ],
+)
+print(f"{DIM}error requests: {sum(req_agg.values())}  distinct codes: {len(req_agg)}  (history only; ACT/DIS = current isActive){NC}")
+PY
+}
+
+# ── codes: inventory SEMUA error code (conn + request) ───────────────────────
+cmd_codes() {
+  need_db
+  local W CODEW MSGW
+  W=$(cols)
+  CODEW=32
+  MSGW=$((W - CODEW - 5 - 5 - 5 - 5 - 14))
+  [[ $MSGW -ge 12 ]] || MSGW=12
+  [[ $MSGW -le 70 ]] || MSGW=70
+
+  echo "${BLUE}${BOLD}grok-cli error codes${NC}  ${DIM}$DB_PATH${NC}"
+  echo
+
+  CODEW=$CODEW MSGW=$MSGW RED="$RED" GREEN="$GREEN" BOLD="$BOLD" DIM="$DIM" NC="$NC" YELLOW="$YELLOW" CYAN="$CYAN" \
+  python3 - "$DB_PATH" "$PROVIDER" <<'PY'
+import json, re, sqlite3, sys, os
+from collections import defaultdict
+
+db, provider = sys.argv[1], sys.argv[2]
+codew = int(os.environ.get("CODEW", "32"))
+msgw = int(os.environ.get("MSGW", "40"))
+RED, GREEN, BOLD, DIM, NC, YELLOW, CYAN = (
+    os.environ.get(k, "") for k in ("RED", "GREEN", "BOLD", "DIM", "NC", "YELLOW", "CYAN")
+)
+con = sqlite3.connect(db)
+
+
+def nested_code(text):
+    if not text:
+        return None
+    m = re.search(r'"code"\s*:\s*"([^"]+)', str(text))
+    if m:
+        return m.group(1)
+    try:
+        i = str(text).find("{")
+        if i >= 0:
+            j = json.loads(str(text)[i:])
+            if isinstance(j, dict) and j.get("code"):
+                return str(j["code"])
+    except Exception:
+        pass
+    return None
+
+
+def short_msg(text):
+    if not text or not str(text).strip():
+        return "(empty)"
+    text = str(text)
+    m = re.search(r'"error"\s*:\s*"([^"]+)', text)
+    if m and m.group(1).strip():
+        return m.group(1).strip()
+    if not text.strip().startswith("{") and '"code"' not in text:
+        return re.sub(r"^\s*\[\d+\]:\s*", "", text).strip().replace("\n", " ")
+    return re.sub(r"^\s*\[\d+\]:\s*", "", text).strip().replace("\n", " ")
+
+
+def trunc(s, n):
+    s = s or ""
+    return s if len(s) <= n else s[: n - 1] + "…"
+
+
+def norm_msg(nest, msg):
+    if nest == "subscription:free-usage-exhausted" or (
+        isinstance(msg, str) and "included free usage" in msg
+    ):
+        return "You've used all the included free usage (rolling 24h quota exceeded)"
+    if isinstance(msg, str) and "out of credits" in msg.lower():
+        return "You have run out of credits or need a Grok subscription"
+    if isinstance(msg, str) and "token invalid" in msg.lower():
+        return "Token invalid or revoked"
+    return msg
+
+
+# filter tokens usable with disabled/enabled/check
+# key = filter_token (what you pass as arg)
+agg = {}  # filter -> {http, nest, msg, conn_act, conn_dis, req_hits, req_accts, sources}
+
+
+def ensure(key):
+    if key not in agg:
+        agg[key] = {
+            "http": set(),
+            "nest": set(),
+            "msg": "",
+            "conn_act": 0,
+            "conn_dis": 0,
+            "req_hits": 0,
+            "req_accts": set(),
+            "src": set(),
+        }
+    return agg[key]
+
+
+# connection live errors
+for _id, data_s, active in con.execute(
+    """
+    SELECT id, data, isActive FROM providerConnections
+    WHERE provider=?
+      AND (
+        json_extract(data, '$.errorCode') IS NOT NULL
+        OR (json_extract(data, '$.lastError') IS NOT NULL
+            AND length(trim(json_extract(data, '$.lastError'))) > 0)
+      )
+    """,
+    (provider,),
+):
+    try:
+        d = json.loads(data_s)
+    except Exception:
+        continue
+    ec = d.get("errorCode")
+    last = d.get("lastError") or ""
+    nest = nested_code(last)
+    msg = norm_msg(nest, short_msg(last))
+    tokens = set()
+    if ec is not None and str(ec) != "":
+        tokens.add(str(ec))
+    if nest:
+        tokens.add(str(nest))
+    # always harvest useful text tokens from lastError (even if http code present)
+    low = f"{msg}\n{last}".lower()
+    if "token invalid" in low:
+        tokens.add("Token invalid")
+    if "invalid_grant" in low:
+        tokens.add("invalid_grant")
+    if "oauth refresh failed" in low:
+        tokens.add("OAuth refresh failed")
+    if "out of credits" in low:
+        tokens.add("out of credits")
+    if not tokens:
+        tokens.add(msg.split(":")[0].strip()[:40] or "unknown")
+    for t in tokens:
+        e = ensure(t)
+        if ec is not None and str(ec) != "":
+            e["http"].add(str(ec))
+        if nest:
+            e["nest"].add(str(nest))
+        if not e["msg"]:
+            e["msg"] = msg
+        if active == 1:
+            e["conn_act"] += 1
+        else:
+            e["conn_dis"] += 1
+        e["src"].add("conn")
+
+# request history
+for conn_id, status, data_s, is_active in con.execute(
+    """
+    SELECT r.connectionId, r.status, r.data, c.isActive
+    FROM requestDetails r
+    LEFT JOIN providerConnections c ON c.id = r.connectionId
+    WHERE (r.provider = ? OR c.provider = ?)
+      AND (
+        r.status = 'error'
+        OR IFNULL(json_extract(r.data, '$.status'), '') = 'error'
+        OR CAST(json_extract(r.data, '$.response.status') AS INTEGER) >= 400
+      )
+    """,
+    (provider, provider),
+):
+    try:
+        d = json.loads(data_s) if data_s else {}
+    except Exception:
+        d = {}
+    resp = d.get("response") if isinstance(d, dict) else {}
+    if not isinstance(resp, dict):
+        resp = {}
+    http = resp.get("status")
+    err_raw = resp.get("error")
+    nest = None
+    msg = "(empty)"
+    if isinstance(err_raw, dict):
+        nest = err_raw.get("code")
+        msg = short_msg(err_raw.get("error") or err_raw.get("message") or json.dumps(err_raw))
+    elif isinstance(err_raw, str):
+        nest = nested_code(err_raw)
+        msg = short_msg(err_raw)
+    msg = norm_msg(nest, msg)
+    tokens = set()
+    if http is not None and str(http) != "":
+        tokens.add(str(http))
+    if nest:
+        tokens.add(str(nest))
+    if not tokens:
+        tokens.add(str(status or "error"))
+    for t in tokens:
+        e = ensure(t)
+        if http is not None and str(http) != "":
+            e["http"].add(str(http))
+        if nest:
+            e["nest"].add(str(nest))
+        if not e["msg"]:
+            e["msg"] = msg
+        e["req_hits"] += 1
+        if conn_id:
+            e["req_accts"].add(conn_id)
+        e["src"].add("req")
+
+# print inventory
+print(f"{YELLOW}{BOLD}all error codes (use as filter arg){NC}")
+hdr = f"{'FILTER':<{codew}} {'MSG':<{msgw}} {'CACT':>5} {'CDIS':>5} {'RHIT':>5} {'RACC':>5} {'SRC':<8}"
+print(DIM + hdr + NC)
+print(DIM + "─" * len(hdr) + NC)
+
+rows = []
+for filt, e in agg.items():
+    rows.append(
+        (
+            filt,
+            e["msg"],
+            e["conn_act"],
+            e["conn_dis"],
+            e["req_hits"],
+            len(e["req_accts"]),
+            "+".join(sorted(e["src"])),
+            e["conn_act"] + e["conn_dis"] + e["req_hits"],
+        )
+    )
+rows.sort(key=lambda r: (-r[7], r[0]))
+
+if not rows:
+    print(f"{GREEN}(none){NC}")
+else:
+    for filt, msg, cact, cdis, rhit, racc, src, _ in rows:
+        print(
+            f"{trunc(filt, codew):<{codew}} {trunc(msg, msgw):<{msgw}} "
+            f"{cact:>5} {cdis:>5} {rhit:>5} {racc:>5} {src:<8}"
+        )
+
+print()
+print(f"{DIM}CACT/CDIS = live connection act/dis counts; RHIT/RACC = request hits / unique accounts{NC}")
+print(f"{DIM}filter examples: 402 | 429 | subscription:free-usage-exhausted | Token invalid | all{NC}")
+print(f"{CYAN}distinct filters: {len(rows)}{NC}")
+PY
+}
+
+# ── check: preview matches, no write ─────────────────────────────────────────
+cmd_check() {
+  need_db
+  build_filter "${1:-}"
+  local n_all n_act n_dis
+  n_all=$(count_matches "")
+  n_act=$(count_matches "AND isActive=1")
+  n_dis=$(count_matches "AND isActive!=1")
+  echo "${BLUE}${BOLD}check${NC} filter=${YELLOW}${FILTER_LABEL}${NC}  total=${BOLD}${n_all}${NC}  active=${GREEN}${n_act}${NC}  disabled=${RED}${n_dis}${NC}"
+
+  if [[ "$n_all" -eq 0 ]]; then
+    echo "${GREEN}No matching accounts.${NC}"
+    return 0
+  fi
+
+  preview_matches "matching accounts (conn fields + request history)" ""
+  [[ "$n_all" -gt 20 ]] && echo "${DIM}... and $((n_all-20)) more${NC}"
+}
+
+# ── preview matching rows ─────────────────────────────────────────────────────
+preview_matches() {
+  local title="$1" active_clause="$2"
+  local W MSGW
+  W=$(cols)
+  MSGW=$((W - 10 - 8 - 6 - 8))
+  [[ $MSGW -ge 16 ]] || MSGW=16
+  [[ $MSGW -le 70 ]] || MSGW=70
+
+  echo "${CYAN}${title}${NC}"
+  printf "${DIM}%-10s %-8s %-6s %s${NC}\n" "id" "code" "active" "lastError"
+  sqlite3 -separator $'\t' "$DB_PATH" "
+SELECT
+  substr(id,1,8),
+  IFNULL(CAST(json_extract(data, '\$.errorCode') AS TEXT), '-'),
+  isActive,
+  substr(IFNULL(json_extract(data, '\$.lastError'), ''), 1, $MSGW)
+FROM providerConnections
+WHERE provider='$PROVIDER'
+  $active_clause
+  $FILTER_SQL
+ORDER BY
+  isActive DESC,
+  datetime(IFNULL(json_extract(data, '\$.lastErrorAt'), '1970-01-01')) DESC
+LIMIT 20;
+" | while IFS=$'\t' read -r id code active last; do
+    [[ -z "${id:-}" ]] && continue
+    printf "%-10s %-8s %-6s %s\n" "$id" "$code" "$active" "$last"
+  done
+}
+
+count_matches() {
+  local active_clause="$1"
+  sql "
+SELECT COUNT(*) FROM providerConnections
+WHERE provider='$PROVIDER'
+  $active_clause
+  $FILTER_SQL;
+"
+}
+
+# ── disabled: LIVE error flags only (never requestDetails history) ────────────
+# no lastError / errorCode → never disable
+cmd_disabled() {
+  need_db
+  build_filter "${1:-}" "live"
+  local n
+  n=$(count_matches "AND isActive=1")
+  echo "${BLUE}${BOLD}disable${NC} filter=${YELLOW}${FILTER_LABEL}${NC} mode=live  matches=${BOLD}${n}${NC} active with live error"
+
+  if [[ "$n" -eq 0 ]]; then
+    echo "${GREEN}Nothing to disable (no active account with live errorCode/lastError).${NC}"
+    echo "${DIM}hint: history-only errors (requestDetails) are ignored by disabled${NC}"
+    exit 0
+  fi
+
+  preview_matches "targets LIVE error only (active → isActive=0)" "AND isActive=1"
+  [[ "$n" -gt 20 ]] && echo "${DIM}... and $((n-20)) more${NC}"
+
+  sql "
+UPDATE providerConnections
+SET isActive = 0,
+    updatedAt = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+WHERE provider='$PROVIDER'
+  AND isActive = 1
+  $FILTER_SQL;
+"
+  echo "${GREEN}✓ disabled ${n} account(s) with live error flags${NC}"
+  cmd_list
+}
+
+# ── enabled: FORCE isActive=1 + clear error flags ─────────────────────────────
+# no arg / all → SEMUA disabled (ignore error filter — clear-flags-only accounts too)
+# with code    → disabled matching that error code/message
+cmd_enabled() {
+  need_db
+  local arg="${1:-}"
+  local n
+  case "$arg" in
+    ""|all|ALL|any|ANY|lastError|lasterror|LASTERROR|error|errors)
+      FILTER_LABEL="all-disabled"
+      FILTER_SQL=""   # no error match required
+      ;;
+    *)
+      build_filter "$arg"
+      ;;
+  esac
+
+  n=$(count_matches "AND isActive!=1")
+  echo "${BLUE}${BOLD}enable${NC} filter=${YELLOW}${FILTER_LABEL}${NC}  matches=${BOLD}${n}${NC} disabled → force isActive=1"
+
+  if [[ "$n" -eq 0 ]]; then
+    echo "${GREEN}Nothing to enable (no disabled match).${NC}"
+    # still show live state
+    cmd_list
+    exit 0
+  fi
+
+  preview_matches "targets (FORCE isActive=1 + clear error flags)" "AND isActive!=1"
+  [[ "$n" -gt 20 ]] && echo "${DIM}... and $((n-20)) more${NC}"
+
+  sql "
+UPDATE providerConnections
+SET isActive = 1,
+    updatedAt = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+    data = $CLEAR_DATA_SQL
+WHERE provider='$PROVIDER'
+  AND isActive != 1
+  $FILTER_SQL;
+"
+  echo "${GREEN}✓ force-enabled ${n} account(s)${NC}"
+  cmd_list
+}
+
+# ── clear: hard-remove error keys, isActive tetap ─────────────────────────────
+# no arg / all → SEMUA akun yang masih punya key errorCode/lastError/lastErrorAt/backoffLevel
+#               (termasuk value JSON null — json_remove menghapus key-nya)
+# with code    → match filter code + masih punya key error
+cmd_clear() {
+  need_db
+  local arg="${1:-}"
+  case "$arg" in
+    ""|all|ALL|any|ANY|lastError|lasterror|LASTERROR|error|errors)
+      FILTER_LABEL="all-error-keys"
+      FILTER_SQL=""   # strip keys on every account that still has them
+      ;;
+    *)
+      build_filter "$arg"
+      ;;
+  esac
+
+  local HAS_ERR="AND $HAS_ERR_KEYS_SQL"
+  local n left
+  n=$(count_matches "$HAS_ERR")
+  echo "${BLUE}${BOLD}clear${NC} filter=${YELLOW}${FILTER_LABEL}${NC}  matches=${BOLD}${n}${NC} with error keys"
+
+  if [[ "$n" -eq 0 ]]; then
+    echo "${GREEN}Nothing to clear (no errorCode/lastError/lastErrorAt/backoffLevel keys).${NC}"
+    exit 0
+  fi
+
+  preview_matches "targets (json_remove errorCode/lastError/lastErrorAt/backoffLevel)" "$HAS_ERR"
+  [[ "$n" -gt 20 ]] && echo "${DIM}... and $((n-20)) more${NC}"
+
+  sql "
+UPDATE providerConnections
+SET updatedAt = strftime('%Y-%m-%dT%H:%M:%fZ', 'now'),
+    data = $CLEAR_DATA_SQL
+WHERE provider='$PROVIDER'
+  $HAS_ERR
+  $FILTER_SQL;
+"
+
+  # verify keys gone
+  left=$(sql "
+SELECT COUNT(*) FROM providerConnections
+WHERE provider='$PROVIDER'
+  AND $HAS_ERR_KEYS_SQL
+  $FILTER_SQL;
+")
+  if [[ "$left" -eq 0 ]]; then
+    echo "${GREEN}✓ cleared error keys on ${n} account(s) — verified gone${NC}"
+  else
+    echo "${RED}✗ cleared ${n} but ${left} still have error keys${NC}" >&2
+  fi
+  cmd_list
+}
+
+# ── delete: HAPUS akun match dari DB ──────────────────────────────────────────
+cmd_delete() {
+  need_db
+  local arg="${1:-}"
+  if [[ -z "$arg" ]]; then
+    die "delete requires filter arg (error code / message / 'all'). Example: grok-management delete 402"
+  fi
+  build_filter "$arg"
+  local n
+  n=$(count_matches "")
+  echo "${RED}${BOLD}delete${NC} filter=${YELLOW}${FILTER_LABEL}${NC}  matches=${BOLD}${n}${NC} accounts"
+
+  if [[ "$n" -eq 0 ]]; then
+    echo "${GREEN}Nothing to delete.${NC}"
+    exit 0
+  fi
+
+  preview_matches "targets (DELETE from providerConnections + requestDetails)" ""
+  [[ "$n" -gt 20 ]] && echo "${DIM}... and $((n-20)) more${NC}"
+
+  # Snapshot IDs first — requestDetails-based filters break if we delete req rows first
+  local ids_file
+  ids_file=$(mktemp)
+  sql "
+SELECT id FROM providerConnections
+WHERE provider='$PROVIDER' $FILTER_SQL;
+" >"$ids_file"
+
+  local id_count req_n
+  id_count=$(wc -l <"$ids_file" | tr -d ' ')
+  if [[ "$id_count" -eq 0 ]]; then
+    rm -f "$ids_file"
+    echo "${GREEN}Nothing to delete.${NC}"
+    exit 0
+  fi
+
+  # build IN ('id1','id2',...) from snapshot
+  local in_list
+  in_list=$(awk '{gsub(/'\''/, "'\'''\''"); printf "%s'\''%s'\''", (NR>1?",":""), $0}' "$ids_file")
+  rm -f "$ids_file"
+
+  req_n=$(sql "SELECT COUNT(*) FROM requestDetails WHERE connectionId IN ($in_list);")
+
+  sql "
+DELETE FROM requestDetails WHERE connectionId IN ($in_list);
+DELETE FROM providerConnections WHERE id IN ($in_list) AND provider='$PROVIDER';
+"
+  echo "${GREEN}✓ deleted ${id_count} account(s), ${req_n} requestDetail row(s)${NC}"
+  cmd_list
+}
+
+# ── main ──────────────────────────────────────────────────────────────────────
+need_sqlite
+cmd="${1:-list}"
+shift || true
+
+case "$cmd" in
+  list|ls|status)       cmd_list ;;
+  codes|code|errors)    cmd_codes ;;
+  check|show|preview)   cmd_check "${1:-}" ;;
+  disabled|disable|off) cmd_disabled "${1:-}" ;;
+  enabled|enable|on)    cmd_enabled  "${1:-}" ;;
+  clear|clr|reset-error) cmd_clear "${1:-}" ;;
+  delete|del|rm|remove)  cmd_delete "${1:-}" ;;
+  -h|--help|help) show_help ;;
+  *)
+    die "Unknown command '$cmd'. Use: list | codes | check | disabled | enabled | clear | delete | help"
+    ;;
+esac

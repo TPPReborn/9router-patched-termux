@@ -1,0 +1,1011 @@
+▲ Next.js 16.2.10
+- Local:         http://localhost:20129
+- Network:       http://0.0.0.0:20129
+✓ Ready in 0ms
+[DB] Driver: better-sqlite3 | file: /data/data/com.termux/files/usr/var/lib/9router/db/data.sqlite
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[01:40:48] 🟢 ▶ POST gcli/grok-4.5 → grok-cli/grok-4.5 · FMT: claude→openai-responses · STREAM · 2 MSG · 127 TOOL · THINK:xhigh · ACC:Julia Howard
+[01:40:48] 🟢 ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[01:40:53] 🟢 📊 DONE 5156ms · TTFT 3946ms · IN 48036 · OUT 37
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[01:41:19] 🟢 ▶ POST gcli/grok-build → grok-cli/grok-build · FMT: claude→openai-responses · STREAM · 1 MSG · ACC:Carolyn Collins
+[01:41:19] 🟢 ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[01:41:19] 🟢 ▶ POST gcli/grok-4.5 → grok-cli/grok-4.5 · FMT: claude→openai-responses · STREAM · 5 MSG · 127 TOOL · THINK:xhigh · ACC:Bryan Maldonado
+[01:41:19] 🟢 ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[01:41:19] 🟢 ✗ ERROR 402 · grok-cli/grok-build · 603ms
+    URL: https://cli-chat-proxy.grok.com/v1/responses
+    [402]: You have run out of credits or need a Grok subscription. Add credits at https://grok.com/?_s=usage or upgrade at https://grok.com/supergrok.
+[01:41:19] ⚠️  [AUTH] Carolyn Collins locked modelLock_grok-build for 120s [402]
+❌ grok-cli [402]: [402]: You have run out of credits or need a Grok subscription. Add credits at https://grok.com/?_s=
+[01:41:19] ⚠️  [FALLBACK] ⇄ ACC:Carolyn Collins UNAVAILABLE (402) → NEXT ACCOUNT
+[01:41:19] 🟢 ▶ POST gcli/grok-build → grok-cli/grok-build · FMT: claude→openai-responses · STREAM · 1 MSG · ACC:Julia Howard
+[01:41:19] 🟢 ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[01:41:20] 🟢 ✗ ERROR 402 · grok-cli/grok-build · 486ms
+    URL: https://cli-chat-proxy.grok.com/v1/responses
+    [402]: You have run out of credits or need a Grok subscription. Add credits at https://grok.com/?_s=usage or upgrade at https://grok.com/supergrok.
+[01:41:20] ⚠️  [AUTH] Julia Howard locked modelLock_grok-build for 120s [402]
+❌ grok-cli [402]: [402]: You have run out of credits or need a Grok subscription. Add credits at https://grok.com/?_s=
+[01:41:20] ⚠️  [FALLBACK] ⇄ ACC:Julia Howard UNAVAILABLE (402) → NEXT ACCOUNT
+[01:41:20] 🟢 ▶ POST gcli/grok-build → grok-cli/grok-build · FMT: claude→openai-responses · STREAM · 1 MSG · ACC:Bryan Maldonado
+[01:41:20] 🟢 ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[01:41:20] 🟢 ✗ ERROR 402 · grok-cli/grok-build · 432ms
+    URL: https://cli-chat-proxy.grok.com/v1/responses
+    [402]: You have run out of credits or need a Grok subscription. Add credits at https://grok.com/?_s=usage or upgrade at https://grok.com/supergrok.
+[01:41:20] ⚠️  [AUTH] Bryan Maldonado locked modelLock_grok-build for 120s [402]
+❌ grok-cli [402]: [402]: You have run out of credits or need a Grok subscription. Add credits at https://grok.com/?_s=
+[01:41:20] ⚠️  [FALLBACK] ⇄ ACC:Bryan Maldonado UNAVAILABLE (402) → NEXT ACCOUNT
+[01:41:20] ⚠️  [AUTH] grok-cli | all 3 accounts locked for grok-build (reset after 2m) | lastError=[402]: You have run out of credits or need a Grok 
+[01:41:20] ⚠️  [CHAT] [grok-cli/grok-build] [402]: You have run out of credits or need a Grok subscription. Add credits at https://grok.com/?_s=usage or upgrade at https://grok.com/supergrok. (reset after 2m)
+[01:41:25] 🟢 📊 DONE 5774ms · TTFT 4480ms · IN 48432 · OUT 93
+[01:43:07] ⚠️  [AUTH] grok-cli | all 3 accounts locked for grok-build (reset after 13s) | lastError=[402]: You have run out of credits or need a Grok 
+[01:43:07] ⚠️  [CHAT] [grok-cli/grok-build] [402]: You have run out of credits or need a Grok subscription. Add credits at https://grok.com/?_s= (reset after 13s)
+[01:43:09] 🟠 ▶ POST gcli/grok-4.5 → grok-cli/grok-4.5 · FMT: openai→openai-responses · STREAM · 1 MSG · ACC:Carolyn Collins
+[01:43:09] 🟠 ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[01:43:12] 🟠 📊 DONE 2841ms · IN 944 · OUT 106
+[01:43:16] 🟢 ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: openai→openai-responses · STREAM · 1 MSG · ACC:Julia Howard
+[01:43:16] 🟢 ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[01:43:19] 🟢 📊 DONE 2839ms · IN 944 · OUT 178
+[01:43:22] 🔵 ▶ POST gcli/grok-4.5-medium → grok-cli/grok-4.5-medium · FMT: openai→openai-responses · STREAM · 1 MSG · ACC:Bryan Maldonado
+[01:43:22] 🔵 ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[01:43:24] 🔵 📊 DONE 2672ms · IN 944 · OUT 108
+[01:43:27] 🟠 ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: openai→openai-responses · STREAM · 1 MSG · ACC:Carolyn Collins
+[01:43:27] 🟠 ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[01:43:30] 🟠 📊 DONE 3784ms · IN 944 · OUT 211
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[01:46:33] 🟤 ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 1 MSG · THINK:high · ACC:Julia Howard
+[01:46:33] 🟤 ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[01:46:33] 🟤 ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 2 MSG · 126 TOOL · THINK:xhigh · ACC:Bryan Maldonado
+[01:46:33] 🟤 ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[01:46:39] 🟤 📊 DONE 6039ms · TTFT 1315ms · IN 1220 · OUT 319
+[01:46:40] 🟤 📊 DONE 6449ms · TTFT 4095ms · IN 47910 · OUT 132
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[01:48:01] 🟤 ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 5 MSG · 126 TOOL · THINK:low · ACC:Carolyn Collins
+[01:48:01] 🟤 ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[01:48:06] 🟤 📊 DONE 5044ms · TTFT 3819ms · IN 48460 · OUT 23
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[01:48:59] 🟤 ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 8 MSG · 126 TOOL · THINK:low · ACC:Julia Howard
+[01:48:59] 🟤 ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[01:49:04] 🟤 📊 DONE 5586ms · TTFT 4344ms · IN 48857 · OUT 94
+OAuth GET error: [TypeError: fetch failed] {
+  [cause]: Error [SocketError]: other side closed
+      at ignore-listed frames {
+    code: 'UND_ERR_SOCKET',
+    socket: {
+      localAddress: '10.70.7.220',
+      localPort: 36790,
+      remoteAddress: '104.18.19.80',
+      remotePort: 443,
+      remoteFamily: 'IPv4',
+      timeout: undefined,
+      bytesWritten: 499,
+      bytesRead: 0
+    }
+  }
+}
+OAuth GET error: Error: Grok CLI device code request failed: {"error":"slow_down","error_description":"Too many device code requests. Please wait and try again."}
+    at Object.requestDeviceCode (.next/server/chunks/5491.js:1:16827)
+    at async q (.next/server/chunks/5491.js:1:40405)
+    at async k (.next/server/app/api/oauth/[provider]/[action]/route.js:1:12924)
+    at async j (.next/server/app/api/oauth/[provider]/[action]/route.js:1:5701)
+    at async h (.next/server/app/api/oauth/[provider]/[action]/route.js:1:6713)
+    at async Module.y (.next/server/app/api/oauth/[provider]/[action]/route.js:1:7809)
+OAuth GET error: [TypeError: fetch failed] {
+  [cause]: Error [SocketError]: other side closed
+      at ignore-listed frames {
+    code: 'UND_ERR_SOCKET',
+    socket: {
+      localAddress: '10.27.182.249',
+      localPort: 35384,
+      remoteAddress: '104.18.18.80',
+      remotePort: 443,
+      remoteFamily: 'IPv4',
+      timeout: undefined,
+      bytesWritten: 499,
+      bytesRead: 0
+    }
+  }
+}
+OAuth GET error: Error: Grok CLI device code request failed: {"error":"slow_down","error_description":"Too many device code requests. Please wait and try again."}
+    at Object.requestDeviceCode (.next/server/chunks/5491.js:1:16827)
+    at async q (.next/server/chunks/5491.js:1:40405)
+    at async k (.next/server/app/api/oauth/[provider]/[action]/route.js:1:12924)
+    at async j (.next/server/app/api/oauth/[provider]/[action]/route.js:1:5701)
+    at async h (.next/server/app/api/oauth/[provider]/[action]/route.js:1:6713)
+    at async Module.y (.next/server/app/api/oauth/[provider]/[action]/route.js:1:7809)
+OAuth GET error: [TypeError: fetch failed] {
+  [cause]: Error [SocketError]: other side closed
+      at ignore-listed frames {
+    code: 'UND_ERR_SOCKET',
+    socket: {
+      localAddress: '10.27.182.249',
+      localPort: 40722,
+      remoteAddress: '104.18.18.80',
+      remotePort: 443,
+      remoteFamily: 'IPv4',
+      timeout: undefined,
+      bytesWritten: 499,
+      bytesRead: 0
+    }
+  }
+}
+OAuth GET error: [TypeError: fetch failed] {
+  [cause]: Error [SocketError]: other side closed
+      at ignore-listed frames {
+    code: 'UND_ERR_SOCKET',
+    socket: {
+      localAddress: '10.27.182.249',
+      localPort: 54916,
+      remoteAddress: '104.18.19.80',
+      remotePort: 443,
+      remoteFamily: 'IPv4',
+      timeout: undefined,
+      bytesWritten: 499,
+      bytesRead: 0
+    }
+  }
+}
+OAuth GET error: Error: Grok CLI device code request failed: {"error":"slow_down","error_description":"Too many device code requests. Please wait and try again."}
+    at Object.requestDeviceCode (.next/server/chunks/5491.js:1:16827)
+    at async q (.next/server/chunks/5491.js:1:40405)
+    at async k (.next/server/app/api/oauth/[provider]/[action]/route.js:1:12924)
+    at async j (.next/server/app/api/oauth/[provider]/[action]/route.js:1:5701)
+    at async h (.next/server/app/api/oauth/[provider]/[action]/route.js:1:6713)
+    at async Module.y (.next/server/app/api/oauth/[provider]/[action]/route.js:1:7809)
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:37:31] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 1 MSG · THINK:high · ACC:Christopher Jordan
+[02:37:31] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:37:31] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 2 MSG · 127 TOOL · THINK:medium · ACC:Tara Thomas
+[02:37:31] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:37:36] ⚪ 📊 DONE 5557ms · TTFT 1728ms · IN 1300 · OUT 325
+[02:37:47] ⚪ 📊 DONE 15954ms · TTFT 10159ms · IN 110725 · OUT 366
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:37:50] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 7 MSG · 127 TOOL · THINK:medium · ACC:Jake Sanchez
+[RTK] saved 3472B / 7280B (47.7%) via [grep] hits=1
+[02:37:50] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:38:04] ⚪ 📊 DONE 13332ms · TTFT 9132ms · IN 111970 · OUT 362
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:38:06] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 11 MSG · 127 TOOL · THINK:medium · ACC:David Lin
+[RTK] saved 7190B / 13862B (51.9%) via [grep] hits=3
+[02:38:06] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:38:20] ⚪ 📊 DONE 13857ms · TTFT 9359ms · IN 113278 · OUT 342
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:38:21] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 13 MSG · 127 TOOL · THINK:medium · ACC:Kimberly Allen
+[RTK] saved 7190B / 19202B (37.4%) via [grep] hits=3
+[02:38:21] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:38:37] ⚪ 📊 DONE 15248ms · TTFT 10115ms · IN 115439 · OUT 401
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:38:38] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 17 MSG · 127 TOOL · THINK:medium · ACC:Brenda Murphy
+[RTK] saved 9252B / 36427B (25.4%) via [grep] hits=4
+[02:38:38] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:38:53] ⚪ 📊 DONE 15583ms · TTFT 10283ms · IN 120236 · OUT 451
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:38:54] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 22 MSG · 127 TOOL · THINK:medium · ACC:Michele Hendrix
+[RTK] saved 9252B / 57079B (16.2%) via [grep] hits=4
+[02:38:54] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:39:08] ⚪ 📊 DONE 14288ms · TTFT 2953ms · IN 126920 · OUT 964
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:39:09] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 28 MSG · 127 TOOL · THINK:medium · ACC:Ricky Sullivan
+[RTK] saved 11735B / 77738B (15.1%) via [grep] hits=5
+[02:39:09] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:39:36] ⚪ 📊 DONE 26279ms · TTFT 11675ms · IN 133285 · OUT 1182
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:39:37] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 32 MSG · 127 TOOL · THINK:medium · ACC:Barbara Potter
+[RTK] saved 12062B / 87486B (13.8%) via [grep] hits=6
+[02:39:37] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:39:51] ⚪ 📊 DONE 14112ms · TTFT 4492ms · IN 136584 · OUT 734
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:39:53] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 40 MSG · 127 TOOL · THINK:medium · ACC:Deborah Lane
+[RTK] saved 13656B / 99939B (13.7%) via [grep] hits=7
+[02:39:53] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:40:20] ⚪ 📊 DONE 27698ms · TTFT 6272ms · IN 140599 · OUT 1440
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:40:21] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 44 MSG · 127 TOOL · THINK:medium · ACC:Daryl Romero
+[RTK] saved 13656B / 117624B (11.6%) via [grep] hits=7
+[02:40:21] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+OAuth GET error: Error: Grok CLI device code request failed: {"error":"slow_down","error_description":"Too many device code requests. Please wait and try again."}
+    at Object.requestDeviceCode (.next/server/chunks/5491.js:1:16827)
+    at async q (.next/server/chunks/5491.js:1:40405)
+    at async k (.next/server/app/api/oauth/[provider]/[action]/route.js:1:12924)
+    at async j (.next/server/app/api/oauth/[provider]/[action]/route.js:1:5701)
+    at async h (.next/server/app/api/oauth/[provider]/[action]/route.js:1:6713)
+    at async Module.y (.next/server/app/api/oauth/[provider]/[action]/route.js:1:7809)
+[02:40:56] ⚪ 📊 DONE 34962ms · TTFT 12206ms · IN 146369 · OUT 1775
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:40:57] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 50 MSG · 127 TOOL · THINK:medium · ACC:Christine Benson
+[RTK] saved 13656B / 134908B (10.1%) via [grep] hits=7
+[02:40:57] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:42:21] ⚪ 📊 DONE 83618ms · TTFT 18180ms · IN 152175 · OUT 5531
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:42:21] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 53 MSG · 127 TOOL · THINK:medium · ACC:Frederick Smith
+[RTK] saved 13656B / 134921B (10.1%) via [grep] hits=7
+[02:42:21] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:42:52] ⚪ 📊 DONE 30829ms · TTFT 13767ms · IN 153786 · OUT 1787
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:42:53] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 55 MSG · 127 TOOL · THINK:medium · ACC:Misty Smith
+[RTK] saved 13656B / 134938B (10.1%) via [grep] hits=7
+[02:42:53] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:43:31] ⚪ 📊 DONE 38142ms · TTFT 14236ms · IN 155567 · OUT 2397
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:43:32] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 57 MSG · 127 TOOL · THINK:medium · ACC:Timothy Lyons
+[RTK] saved 13656B / 134952B (10.1%) via [grep] hits=7
+[02:43:32] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:44:10] ⚪ 📊 DONE 37865ms · TTFT 6853ms · IN 157827 · OUT 3341
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:44:10] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 59 MSG · 127 TOOL · THINK:medium · ACC:Ashley Kramer
+[RTK] saved 13656B / 134969B (10.1%) via [grep] hits=7
+[02:44:10] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:44:23] ⚪ 📊 DONE 12888ms · TTFT 8900ms · IN 161104 · OUT 322
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:44:24] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 61 MSG · 127 TOOL · THINK:medium · ACC:Ashley Nolan
+[RTK] saved 13656B / 135514B (10.1%) via [grep] hits=7
+[02:44:24] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:44:57] ⚪ 📊 DONE 33695ms · TTFT 26906ms · IN 161612 · OUT 454
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:44:58] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 64 MSG · 127 TOOL · THINK:medium · ACC:Barbara Mcbride
+[RTK] saved 13656B / 139237B (9.8%) via [grep] hits=7
+[02:44:58] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:45:40] ⚪ 📊 DONE 41981ms · TTFT 13412ms · IN 163201 · OUT 2665
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:45:41] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 67 MSG · 127 TOOL · THINK:medium · ACC:Misty Benson
+[RTK] saved 13656B / 139460B (9.8%) via [grep] hits=7
+[02:45:41] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:45:49] ⚪ 📊 DONE 8295ms · TTFT 4705ms · IN 165572 · OUT 280
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:45:50] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 71 MSG · 127 TOOL · THINK:medium · ACC:Courtney Lopez
+[RTK] saved 14090B / 143028B (9.9%) via [grep] hits=8
+[02:45:50] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:46:15] ⚪ 📊 DONE 25150ms · TTFT 15098ms · IN 166545 · OUT 804
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:46:16] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 73 MSG · 127 TOOL · THINK:medium · ACC:Jennifer Hogan
+[RTK] saved 14507B / 143694B (10.1%) via [grep] hits=9
+[02:46:16] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:46:28] ⚪ 📊 DONE 12249ms · TTFT 7397ms · IN 167377 · OUT 482
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:46:29] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 75 MSG · 127 TOOL · THINK:medium · ACC:Madeline Perez
+[RTK] saved 15271B / 144707B (10.6%) via [grep] hits=10
+[02:46:29] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:46:33] ⚪ 📊 DONE 4659ms · TTFT 2110ms · IN 167911 · OUT 253
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:46:34] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 77 MSG · 127 TOOL · THINK:medium · ACC:Sherry Williamson
+[RTK] saved 15961B / 145646B (11.0%) via [grep] hits=11
+[02:46:34] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:46:48] ⚪ 📊 DONE 13850ms · TTFT 9362ms · IN 168219 · OUT 363
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:46:49] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 79 MSG · 127 TOOL · THINK:medium · ACC:Cindy Chavez
+[RTK] saved 15961B / 146142B (10.9%) via [grep] hits=11
+[02:46:49] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:46:55] ⚪ 📊 DONE 6468ms · TTFT 2687ms · IN 168702 · OUT 344
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:46:57] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 81 MSG · 127 TOOL · THINK:medium · ACC:Laura Kelley
+[RTK] saved 16709B / 147139B (11.4%) via [grep] hits=12
+[02:46:57] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:47:02] ⚪ 📊 DONE 5432ms · TTFT 3797ms · IN 169106 · OUT 209
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:47:03] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 92 MSG · 127 TOOL · THINK:medium · ACC:Kristi Mendez
+[RTK] saved 16709B / 151345B (11.0%) via [grep] hits=12
+[02:47:03] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:48:11] ⚪ 📊 DONE 67856ms · TTFT 63909ms · IN 170757 · OUT 296
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:48:11] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 95 MSG · 127 TOOL · THINK:medium · ACC:Angelica Gordon
+[RTK] saved 16709B / 151973B (11.0%) via [grep] hits=12
+[02:48:11] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:48:31] ⚪ 📊 DONE 19973ms · TTFT 2619ms · IN 171174 · OUT 1483
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:48:32] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 97 MSG · 127 TOOL · THINK:medium · ACC:Brenda Walker
+[RTK] saved 16709B / 152043B (11.0%) via [grep] hits=12
+[02:48:32] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:48:40] ⚪ 📊 DONE 8328ms · TTFT 6455ms · IN 172546 · OUT 509
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:48:41] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 101 MSG · 127 TOOL · THINK:medium · ACC:Robert Fry
+[RTK] saved 16709B / 152572B (11.0%) via [grep] hits=12
+[02:48:41] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:48:50] ⚪ 📊 DONE 9137ms · TTFT 3636ms · IN 173236 · OUT 452
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:51:41] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 104 MSG · 127 TOOL · THINK:medium · ACC:Andrew Rodriguez
+[RTK] saved 16709B / 152572B (11.0%) via [grep] hits=12
+[02:51:41] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:51:49] ⚪ 📊 DONE 8434ms · TTFT 3501ms · IN 174153 · OUT 408
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:51:50] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 109 MSG · 127 TOOL · THINK:medium · ACC:Daniel Walker
+[RTK] saved 17879B / 162328B (11.0%) via [grep] hits=13
+[02:51:50] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:51:57] ⚪ 📊 DONE 7082ms · TTFT 3264ms · IN 177580 · OUT 236
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:51:58] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 112 MSG · 127 TOOL · THINK:medium · ACC:David Lane
+[RTK] saved 17879B / 167769B (10.7%) via [grep] hits=13
+[02:51:58] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:52:30] ⚪ 📊 DONE 32547ms · TTFT 29662ms · IN 179805 · OUT 268
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:52:31] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 118 MSG · 127 TOOL · THINK:medium · ACC:Tanya Smith
+[RTK] saved 17879B / 174604B (10.2%) via [grep] hits=13
+[02:52:31] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:53:16] ⚪ 📊 DONE 45025ms · TTFT 8021ms · IN 182277 · OUT 3921
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:53:17] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 120 MSG · 127 TOOL · THINK:medium · ACC:Sandra Mcdaniel
+[RTK] saved 17879B / 174870B (10.2%) via [grep] hits=13
+[02:53:17] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:53:27] ⚪ 📊 DONE 9666ms · TTFT 5742ms · IN 186262 · OUT 301
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:53:28] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 124 MSG · 127 TOOL · THINK:medium · ACC:Mary Case
+[RTK] saved 17879B / 175256B (10.2%) via [grep] hits=13
+[02:53:28] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:53:40] ⚪ 📊 DONE 11366ms · TTFT 6095ms · IN 186667 · OUT 492
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:53:41] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 126 MSG · 127 TOOL · THINK:medium · ACC:Jasmine Gordon
+[RTK] saved 17879B / 175708B (10.2%) via [grep] hits=13
+[02:53:41] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+OAuth GET error: Error: Grok CLI device code request failed: {"error":"slow_down","error_description":"Too many device code requests. Please wait and try again."}
+    at Object.requestDeviceCode (.next/server/chunks/5491.js:1:16827)
+    at async q (.next/server/chunks/5491.js:1:40405)
+    at async k (.next/server/app/api/oauth/[provider]/[action]/route.js:1:12924)
+    at async j (.next/server/app/api/oauth/[provider]/[action]/route.js:1:5701)
+    at async h (.next/server/app/api/oauth/[provider]/[action]/route.js:1:6713)
+    at async Module.y (.next/server/app/api/oauth/[provider]/[action]/route.js:1:7809)
+[02:53:53] ⚪ 📊 DONE 11441ms · TTFT 5371ms · IN 187279 · OUT 506
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:53:54] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 128 MSG · 127 TOOL · THINK:medium · ACC:Sylvia Benson
+[RTK] saved 17879B / 175837B (10.2%) via [grep] hits=13
+[02:53:54] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:54:00] ⚪ 📊 DONE 6618ms · TTFT 3170ms · IN 187830 · OUT 320
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:56:49] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 131 MSG · 127 TOOL · THINK:medium · ACC:Melissa Freeman
+[RTK] saved 17879B / 175837B (10.2%) via [grep] hits=13
+[02:56:49] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:57:09] ⚪ 📊 DONE 19892ms · TTFT 8091ms · IN 188627 · OUT 1109
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:57:10] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 139 MSG · 127 TOOL · THINK:medium · ACC:Melissa Freeman
+[RTK] saved 17885B / 194342B (9.2%) via [grep,dedup-log] hits=14
+[02:57:10] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:57:22] ⚪ 📊 DONE 11340ms · TTFT 3419ms · IN 194765 · OUT 678
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:57:22] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 143 MSG · 127 TOOL · THINK:medium · ACC:Melissa Freeman
+[RTK] saved 17885B / 210952B (8.5%) via [grep,dedup-log] hits=14
+[02:57:22] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:57:35] ⚪ 📊 DONE 12698ms · TTFT 5125ms · IN 199717 · OUT 576
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:57:36] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 145 MSG · 127 TOOL · THINK:medium · ACC:Melissa Freeman
+[RTK] saved 17885B / 228669B (7.8%) via [grep,dedup-log] hits=14
+[02:57:36] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:58:16] ⚪ 📊 DONE 40081ms · TTFT 26770ms · IN 204612 · OUT 1030
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:58:16] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 148 MSG · 127 TOOL · THINK:medium · ACC:Melissa Freeman
+[RTK] saved 17885B / 234047B (7.6%) via [grep,dedup-log] hits=14
+[02:58:16] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:58:38] ⚪ 📊 DONE 21614ms · TTFT 12265ms · IN 206331 · OUT 616
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:58:39] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 150 MSG · 127 TOOL · THINK:medium · ACC:Bridget Brooks
+[RTK] saved 17885B / 234140B (7.6%) via [grep,dedup-log] hits=14
+[02:58:39] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[02:58:50] ⚪ 📊 DONE 11465ms · TTFT 5515ms · IN 206558 · OUT 453
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[02:58:51] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 152 MSG · 127 TOOL · THINK:medium · ACC:Bridget Brooks
+[RTK] saved 17885B / 240498B (7.4%) via [grep,dedup-log] hits=14
+[02:58:51] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:00:01] ⚪ 📊 DONE 69854ms · TTFT 3589ms · IN 208381 · OUT 6252
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:00:02] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 155 MSG · 127 TOOL · THINK:medium · ACC:Bridget Brooks
+[RTK] saved 17885B / 240620B (7.4%) via [grep,dedup-log] hits=14
+[03:00:02] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:00:22] ⚪ 📊 DONE 20600ms · TTFT 18658ms · IN 213316 · OUT 164
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:00:23] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 158 MSG · 127 TOOL · THINK:medium · ACC:Bridget Brooks
+[RTK] saved 17885B / 242810B (7.4%) via [grep,dedup-log] hits=14
+[03:00:23] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:00:34] ⚪ 📊 DONE 11276ms · TTFT 6032ms · IN 214250 · OUT 482
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:00:34] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 160 MSG · 127 TOOL · THINK:medium · ACC:Bridget Brooks
+[RTK] saved 17885B / 243031B (7.4%) via [grep,dedup-log] hits=14
+[03:00:34] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:00:53] ⚪ 📊 DONE 18324ms · TTFT 3972ms · IN 214773 · OUT 1533
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:00:54] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 162 MSG · 127 TOOL · THINK:medium · ACC:Sara Sanchez
+[RTK] saved 17885B / 243048B (7.4%) via [grep,dedup-log] hits=14
+[03:00:54] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:01:25] ⚪ 📊 DONE 31442ms · TTFT 24571ms · IN 216300 · OUT 410
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:01:26] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 164 MSG · 127 TOOL · THINK:medium · ACC:Sara Sanchez
+[RTK] saved 18239B / 244845B (7.4%) via [grep,dedup-log,find] hits=15
+[03:01:26] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:01:45] ⚪ 📊 DONE 18912ms · TTFT 2927ms · IN 217056 · OUT 1035
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:01:45] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 166 MSG · 127 TOOL · THINK:medium · ACC:Sara Sanchez
+[RTK] saved 18239B / 245436B (7.4%) via [grep,dedup-log,find] hits=15
+[03:01:45] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:02:09] ⚪ 📊 DONE 23885ms · TTFT 11251ms · IN 217411 · OUT 818
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:02:10] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 168 MSG · 127 TOOL · THINK:medium · ACC:Sara Sanchez
+[RTK] saved 18239B / 249682B (7.3%) via [grep,dedup-log,find] hits=15
+[03:02:10] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:02:24] ⚪ 📊 DONE 14401ms · TTFT 13149ms · IN 218749 · OUT 1010
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:02:25] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 170 MSG · 127 TOOL · THINK:medium · ACC:Sara Sanchez
+[RTK] saved 18239B / 249935B (7.3%) via [grep,dedup-log,find] hits=15
+[03:02:25] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:02:59] ⚪ 📊 DONE 33813ms · TTFT 32568ms · IN 219852 · OUT 508
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:03:00] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 172 MSG · 127 TOOL · THINK:medium · ACC:Patricia Oliver
+[RTK] saved 18239B / 249960B (7.3%) via [grep,dedup-log,find] hits=15
+[03:03:00] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:03:36] ⚪ 📊 DONE 36198ms · TTFT 34011ms · IN 220370 · OUT 353
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:03:37] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 176 MSG · 127 TOOL · THINK:medium · ACC:Patricia Oliver
+[RTK] saved 18239B / 250081B (7.3%) via [grep,dedup-log,find] hits=15
+[03:03:37] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:03:46] ⚪ 📊 DONE 9469ms · TTFT 3375ms · IN 220777 · OUT 376
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:11:58] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 179 MSG · 127 TOOL · THINK:medium · ACC:Patricia Oliver
+[RTK] saved 18239B / 250081B (7.3%) via [grep,dedup-log,find] hits=15
+[03:11:58] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:12:05] ⚪ 📊 DONE 7362ms · TTFT 2733ms · IN 221792 · OUT 399
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:12:06] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 183 MSG · 127 TOOL · THINK:medium · ACC:Patricia Oliver
+[RTK] saved 18242B / 263080B (6.9%) via [grep,dedup-log,find] hits=16
+[03:12:06] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:13:09] ⚪ 📊 DONE 62839ms · TTFT 3456ms · IN 226046 · OUT 5257
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:13:10] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 185 MSG · 127 TOOL · THINK:medium · ACC:Patricia Oliver
+[RTK] saved 18242B / 263146B (6.9%) via [grep,dedup-log,find] hits=16
+[03:13:10] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+OAuth GET error: Error: Grok CLI device code request failed: {"error":"slow_down","error_description":"Too many device code requests. Please wait and try again."}
+    at Object.requestDeviceCode (.next/server/chunks/5491.js:1:16827)
+    at async q (.next/server/chunks/5491.js:1:40405)
+    at async k (.next/server/app/api/oauth/[provider]/[action]/route.js:1:12924)
+    at async j (.next/server/app/api/oauth/[provider]/[action]/route.js:1:5701)
+    at async h (.next/server/app/api/oauth/[provider]/[action]/route.js:1:6713)
+    at async Module.y (.next/server/app/api/oauth/[provider]/[action]/route.js:1:7809)
+[03:13:51] ⚪ 📊 DONE 41378ms · TTFT 36502ms · IN 231126 · OUT 331
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:13:53] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 189 MSG · 127 TOOL · THINK:medium · ACC:Danielle Fowler
+[RTK] saved 18242B / 263401B (6.9%) via [grep,dedup-log,find] hits=16
+[03:13:53] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:14:19] ⚪ 📊 DONE 26476ms · TTFT 23461ms · IN 231538 · OUT 234
+OAuth GET error: Error: Grok CLI device code request failed: {"error":"slow_down","error_description":"Too many device code requests. Please wait and try again."}
+    at Object.requestDeviceCode (.next/server/chunks/5491.js:1:16827)
+    at async q (.next/server/chunks/5491.js:1:40405)
+    at async k (.next/server/app/api/oauth/[provider]/[action]/route.js:1:12924)
+    at async j (.next/server/app/api/oauth/[provider]/[action]/route.js:1:5701)
+    at async h (.next/server/app/api/oauth/[provider]/[action]/route.js:1:6713)
+    at async Module.y (.next/server/app/api/oauth/[provider]/[action]/route.js:1:7809)
+OAuth GET error: Error: Grok CLI device code request failed: {"error":"slow_down","error_description":"Too many device code requests. Please wait and try again."}
+    at Object.requestDeviceCode (.next/server/chunks/5491.js:1:16827)
+    at async q (.next/server/chunks/5491.js:1:40405)
+    at async k (.next/server/app/api/oauth/[provider]/[action]/route.js:1:12924)
+    at async j (.next/server/app/api/oauth/[provider]/[action]/route.js:1:5701)
+    at async h (.next/server/app/api/oauth/[provider]/[action]/route.js:1:6713)
+    at async Module.y (.next/server/app/api/oauth/[provider]/[action]/route.js:1:7809)
+OAuth GET error: Error: Grok CLI device code request failed: {"error":"slow_down","error_description":"Too many device code requests. Please wait and try again."}
+    at Object.requestDeviceCode (.next/server/chunks/5491.js:1:16827)
+    at async q (.next/server/chunks/5491.js:1:40405)
+    at async k (.next/server/app/api/oauth/[provider]/[action]/route.js:1:12924)
+    at async j (.next/server/app/api/oauth/[provider]/[action]/route.js:1:5701)
+    at async h (.next/server/app/api/oauth/[provider]/[action]/route.js:1:6713)
+    at async Module.y (.next/server/app/api/oauth/[provider]/[action]/route.js:1:7809)
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:20:42] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 192 MSG · 127 TOOL · THINK:medium · ACC:Danielle Fowler
+[RTK] saved 18242B / 263401B (6.9%) via [grep,dedup-log,find] hits=16
+[03:20:42] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:21:09] ⚪ 📊 DONE 26534ms · TTFT 21099ms · IN 232296 · OUT 388
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:21:10] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 197 MSG · 127 TOOL · THINK:medium · ACC:Danielle Fowler
+[RTK] saved 19999B / 271362B (7.4%) via [grep,dedup-log,find] hits=18
+[03:21:10] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:22:11] ⚪ 📊 DONE 61210ms · TTFT 18548ms · IN 234388 · OUT 4032
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:22:12] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 201 MSG · 127 TOOL · THINK:medium · ACC:Danielle Fowler
+[RTK] saved 19999B / 271418B (7.4%) via [grep,dedup-log,find] hits=18
+[03:22:12] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:22:21] ⚪ 📊 DONE 8705ms · TTFT 5546ms · IN 238305 · OUT 265
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:22:22] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 205 MSG · 127 TOOL · THINK:medium · ACC:Danielle Fowler
+[RTK] saved 19999B / 271466B (7.4%) via [grep,dedup-log,find] hits=18
+[03:22:22] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:22:49] ⚪ 📊 DONE 27630ms · TTFT 25099ms · IN 238567 · OUT 168
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:25:09] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 208 MSG · 127 TOOL · THINK:medium · ACC:Dave Johnson
+[RTK] saved 19999B / 271466B (7.4%) via [grep,dedup-log,find] hits=18
+[03:25:09] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:25:50] ⚪ 📊 DONE 40842ms · TTFT 38258ms · IN 239264 · OUT 258
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:25:51] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 210 MSG · 127 TOOL · THINK:medium · ACC:Dave Johnson
+[RTK] saved 19999B / 276937B (7.2%) via [grep,dedup-log,find] hits=18
+[03:25:51] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:26:31] ⚪ 📊 DONE 40000ms · TTFT 10403ms · IN 241132 · OUT 2912
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:26:32] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 213 MSG · 127 TOOL · THINK:medium · ACC:Dave Johnson
+[RTK] saved 19999B / 276966B (7.2%) via [grep,dedup-log,find] hits=18
+[03:26:32] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:26:43] ⚪ 📊 DONE 10809ms · TTFT 9408ms · IN 244060 · OUT 96
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:26:44] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 215 MSG · 127 TOOL · THINK:medium · ACC:Dave Johnson
+[RTK] saved 19999B / 276968B (7.2%) via [grep,dedup-log,find] hits=18
+[03:26:44] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:26:51] ⚪ 📊 DONE 6458ms · TTFT 4538ms · IN 244158 · OUT 130
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:31:41] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 218 MSG · 127 TOOL · THINK:medium · ACC:Dave Johnson
+[RTK] saved 19999B / 276968B (7.2%) via [grep,dedup-log,find] hits=18
+[03:31:41] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:31:51] ⚪ 📊 DONE 9692ms · TTFT 3507ms · IN 244840 · OUT 507
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:31:52] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 224 MSG · 127 TOOL · THINK:medium · ACC:Madison Young
+[RTK] saved 19999B / 282864B (7.1%) via [grep,dedup-log,find] hits=18
+[03:31:52] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:32:28] ⚪ 📊 DONE 36004ms · TTFT 30420ms · IN 247095 · OUT 387
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:32:29] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 226 MSG · 127 TOOL · THINK:medium · ACC:Madison Young
+[RTK] saved 20000B / 286613B (7.0%) via [grep,dedup-log,find] hits=19
+[03:32:29] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:33:41] ⚪ 📊 DONE 72627ms · TTFT 25740ms · IN 248718 · OUT 4830
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:33:42] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 229 MSG · 127 TOOL · THINK:medium · ACC:Madison Young
+[RTK] saved 20000B / 286706B (7.0%) via [grep,dedup-log,find] hits=19
+[03:33:42] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:34:40] ⚪ 📊 DONE 58154ms · TTFT 56881ms · IN 253579 · OUT 246
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:34:41] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 231 MSG · 127 TOOL · THINK:medium · ACC:Madison Young
+[RTK] saved 20000B / 287620B (7.0%) via [grep,dedup-log,find] hits=19
+[03:34:42] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:34:49] ⚪ 📊 DONE 7514ms · TTFT 2758ms · IN 254086 · OUT 358
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:36:26] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 234 MSG · 127 TOOL · THINK:medium · ACC:Madison Young
+[RTK] saved 20000B / 287620B (7.0%) via [grep,dedup-log,find] hits=19
+[03:36:26] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:36:33] ⚪ 📊 DONE 7429ms · TTFT 3116ms · IN 254974 · OUT 351
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:36:34] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 236 MSG · 127 TOOL · THINK:medium · ACC:Savannah Sanders
+[RTK] saved 20000B / 293855B (6.8%) via [grep,dedup-log,find] hits=19
+[03:36:34] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:37:22] ⚪ 📊 DONE 47940ms · TTFT 12805ms · IN 257103 · OUT 3410
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:37:24] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 239 MSG · 127 TOOL · THINK:medium · ACC:Savannah Sanders
+[RTK] saved 20000B / 293891B (6.8%) via [grep,dedup-log,find] hits=19
+[03:37:24] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:37:32] ⚪ 📊 DONE 8350ms · TTFT 7051ms · IN 260398 · OUT 119
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:37:33] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 241 MSG · 127 TOOL · THINK:medium · ACC:Savannah Sanders
+[RTK] saved 20000B / 293893B (6.8%) via [grep,dedup-log,find] hits=19
+[03:37:33] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:37:39] ⚪ 📊 DONE 6166ms · TTFT 3031ms · IN 260520 · OUT 229
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:46:31] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 244 MSG · 127 TOOL · THINK:medium · ACC:Savannah Sanders
+[RTK] saved 20000B / 293893B (6.8%) via [grep,dedup-log,find] hits=19
+[03:46:31] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:46:57] ⚪ 📊 DONE 25877ms · TTFT 19798ms · IN 261393 · OUT 421
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:46:58] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 246 MSG · 127 TOOL · THINK:medium · ACC:Savannah Sanders
+[RTK] saved 20000B / 302096B (6.6%) via [grep,dedup-log,find] hits=19
+[03:46:58] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:47:41] ⚪ 📊 DONE 43113ms · TTFT 2657ms · IN 263749 · OUT 3976
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:47:42] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 249 MSG · 127 TOOL · THINK:medium · ACC:Norma Evans
+[RTK] saved 20000B / 303302B (6.6%) via [grep,dedup-log,find] hits=19
+[03:47:42] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:48:51] ⚪ 📊 DONE 68949ms · TTFT 65870ms · IN 267823 · OUT 253
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:48:52] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 251 MSG · 127 TOOL · THINK:medium · ACC:Norma Evans
+[RTK] saved 20000B / 303803B (6.6%) via [grep,dedup-log,find] hits=19
+[03:48:52] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:49:41] ⚪ 📊 DONE 49168ms · TTFT 3073ms · IN 268161 · OUT 4684
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:49:42] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 253 MSG · 127 TOOL · THINK:medium · ACC:Norma Evans
+[RTK] saved 20000B / 303836B (6.6%) via [grep,dedup-log,find] hits=19
+[03:49:42] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:50:37] ⚪ 📊 DONE 55389ms · TTFT 54099ms · IN 272830 · OUT 208
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:50:39] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 255 MSG · 127 TOOL · THINK:medium · ACC:Norma Evans
+[RTK] saved 20000B / 304378B (6.6%) via [grep,dedup-log,find] hits=19
+[03:50:39] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:50:49] ⚪ 📊 DONE 10351ms · TTFT 2890ms · IN 273237 · OUT 456
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:50:50] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 258 MSG · 127 TOOL · THINK:medium · ACC:Norma Evans
+[RTK] saved 20000B / 304823B (6.6%) via [grep,dedup-log,find] hits=19
+[03:50:50] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:50:59] ⚪ ✗ ERROR 429 · grok-cli/grok-4.5-low · 9497ms
+    URL: https://cli-chat-proxy.grok.com/v1/responses
+    [429]: {"code":"subscription:free-usage-exhausted","error":"You've used all the included free usage for model grok-4.5-build-free for now. Usage resets over a rolling 24-hour window — tokens (actual/limit): 1087652/1000000. Upgrade to a Grok subscription for higher limits: https://grok.com/supergrok"}
+[03:50:59] ⚠️  [AUTH] Norma Evans locked modelLock_grok-4.5-low for 2s [429]
+❌ grok-cli [429]: [429]: {"code":"subscription:free-usage-exhausted","error":"You've used all the included free usage 
+[03:50:59] ⚠️  [FALLBACK] ⇄ ACC:Norma Evans UNAVAILABLE (429) → NEXT ACCOUNT
+[03:51:00] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 258 MSG · 127 TOOL · THINK:medium · ACC:Kathleen Moore
+[RTK] saved 20000B / 304823B (6.6%) via [grep,dedup-log,find] hits=19
+[03:51:00] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:51:48] ⚪ 📊 DONE 48812ms · TTFT 47504ms · IN 273612 · OUT 4617
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:51:50] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 260 MSG · 127 TOOL · THINK:medium · ACC:Kathleen Moore
+[RTK] saved 20000B / 305308B (6.6%) via [grep,dedup-log,find] hits=19
+[03:51:50] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:52:54] ⚪ 📊 DONE 64294ms · TTFT 63056ms · IN 278374 · OUT 181
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:52:54] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 263 MSG · 127 TOOL · THINK:medium · ACC:Kathleen Moore
+[RTK] saved 20000B / 309836B (6.5%) via [grep,dedup-log,find] hits=19
+[03:52:54] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:53:01] ⚪ 📊 DONE 6439ms · TTFT 3290ms · IN 279998 · OUT 228
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:53:02] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 265 MSG · 127 TOOL · THINK:medium · ACC:Kathleen Moore
+[RTK] saved 20000B / 321120B (6.2%) via [grep,dedup-log,find] hits=19
+[03:53:02] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:53:25] ⚪ 📊 DONE 23950ms · TTFT 3769ms · IN 283470 · OUT 1822
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:53:26] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 268 MSG · 127 TOOL · THINK:medium · ACC:Kathleen Moore
+[RTK] saved 20000B / 321237B (6.2%) via [grep,dedup-log,find] hits=19
+[03:53:26] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:53:36] ⚪ ✗ ERROR 429 · grok-cli/grok-4.5-low · 9662ms
+    URL: https://cli-chat-proxy.grok.com/v1/responses
+    [429]: {"code":"subscription:free-usage-exhausted","error":"You've used all the included free usage for model grok-4.5-build-free for now. Usage resets over a rolling 24-hour window — tokens (actual/limit): 1122302/1000000. Upgrade to a Grok subscription for higher limits: https://grok.com/supergrok"}
+[03:53:36] ⚠️  [AUTH] Kathleen Moore locked modelLock_grok-4.5-low for 2s [429]
+❌ grok-cli [429]: [429]: {"code":"subscription:free-usage-exhausted","error":"You've used all the included free usage 
+[03:53:36] ⚠️  [FALLBACK] ⇄ ACC:Kathleen Moore UNAVAILABLE (429) → NEXT ACCOUNT
+[03:53:36] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 268 MSG · 127 TOOL · THINK:medium · ACC:Anthony Davis
+[RTK] saved 20000B / 321237B (6.2%) via [grep,dedup-log,find] hits=19
+[03:53:36] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+OAuth POST error: [TypeError: fetch failed] {
+  [cause]: Error [SocketError]: other side closed
+      at ignore-listed frames {
+    code: 'UND_ERR_SOCKET',
+    socket: {
+      localAddress: '10.27.182.249',
+      localPort: 55440,
+      remoteAddress: '104.18.19.80',
+      remotePort: 443,
+      remoteFamily: 'IPv4',
+      timeout: undefined,
+      bytesWritten: 522,
+      bytesRead: 0
+    }
+  }
+}
+[03:54:13] ⚪ 📊 DONE 36808ms · TTFT 34582ms · IN 285186 · OUT 313
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:54:14] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 272 MSG · 127 TOOL · THINK:medium · ACC:Anthony Davis
+[RTK] saved 20000B / 322890B (6.2%) via [grep,dedup-log,find] hits=19
+[03:54:14] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:54:30] ⚪ 📊 DONE 16407ms · TTFT 11044ms · IN 285925 · OUT 347
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:54:32] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 274 MSG · 127 TOOL · THINK:medium · ACC:Anthony Davis
+[RTK] saved 20002B / 324592B (6.2%) via [grep,dedup-log,find] hits=20
+[03:54:32] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:54:41] ⚪ 📊 DONE 9087ms · TTFT 3430ms · IN 286645 · OUT 338
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:56:44] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 277 MSG · 127 TOOL · THINK:medium · ACC:Anthony Davis
+[RTK] saved 20002B / 324592B (6.2%) via [grep,dedup-log,find] hits=20
+[03:56:44] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+OAuth GET error: Error: Grok CLI device code request failed: {"error":"slow_down","error_description":"Too many device code requests. Please wait and try again."}
+    at Object.requestDeviceCode (.next/server/chunks/5491.js:1:16827)
+    at async q (.next/server/chunks/5491.js:1:40405)
+    at async k (.next/server/app/api/oauth/[provider]/[action]/route.js:1:12924)
+    at async j (.next/server/app/api/oauth/[provider]/[action]/route.js:1:5701)
+    at async h (.next/server/app/api/oauth/[provider]/[action]/route.js:1:6713)
+    at async Module.y (.next/server/app/api/oauth/[provider]/[action]/route.js:1:7809)
+[03:57:31] ⚪ 📊 DONE 46947ms · TTFT 42403ms · IN 287498 · OUT 396
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:57:31] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 281 MSG · 127 TOOL · THINK:medium · ACC:Anthony Davis
+[RTK] saved 24959B / 337472B (7.4%) via [grep,dedup-log,find] hits=21
+[03:57:31] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:57:42] ⚪ ✗ ERROR 429 · grok-cli/grok-4.5-low · 10104ms
+    URL: https://cli-chat-proxy.grok.com/v1/responses
+    [429]: {"code":"subscription:free-usage-exhausted","error":"You've used all the included free usage for model grok-4.5-build-free for now. Usage resets over a rolling 24-hour window — tokens (actual/limit): 1146648/1000000. Upgrade to a Grok subscription for higher limits: https://grok.com/supergrok"}
+[03:57:42] ⚠️  [AUTH] Anthony Davis locked modelLock_grok-4.5-low for 2s [429]
+❌ grok-cli [429]: [429]: {"code":"subscription:free-usage-exhausted","error":"You've used all the included free usage 
+[03:57:42] ⚠️  [FALLBACK] ⇄ ACC:Anthony Davis UNAVAILABLE (429) → NEXT ACCOUNT
+[03:57:42] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 281 MSG · 127 TOOL · THINK:medium · ACC:Linda Phillips
+[RTK] saved 24959B / 337472B (7.4%) via [grep,dedup-log,find] hits=21
+[03:57:42] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:58:16] ⚪ 📊 DONE 34482ms · TTFT 33194ms · IN 290086 · OUT 86
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:58:17] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 284 MSG · 127 TOOL · THINK:medium · ACC:Linda Phillips
+[RTK] saved 29677B / 343103B (8.6%) via [grep,dedup-log,find] hits=22
+[03:58:17] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:58:23] ⚪ 📊 DONE 5922ms · TTFT 4658ms · IN 290655 · OUT 153
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:58:24] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 288 MSG · 127 TOOL · THINK:medium · ACC:Linda Phillips
+[RTK] saved 37149B / 350914B (10.6%) via [grep,dedup-log,find,ls] hits=23
+[03:58:24] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:58:30] ⚪ 📊 DONE 5810ms · TTFT 4540ms · IN 290949 · OUT 168
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:58:30] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 290 MSG · 127 TOOL · THINK:medium · ACC:Linda Phillips
+[RTK] saved 46556B / 361267B (12.9%) via [grep,dedup-log,find,ls] hits=24
+[03:58:31] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:58:37] ⚪ 📊 DONE 6914ms · TTFT 5633ms · IN 291521 · OUT 225
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:58:38] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 292 MSG · 127 TOOL · THINK:medium · ACC:Linda Phillips
+[RTK] saved 48917B / 364565B (13.4%) via [grep,dedup-log,find,ls] hits=25
+[03:58:38] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:58:49] ⚪ ✗ ERROR 429 · grok-cli/grok-4.5-low · 10481ms
+    URL: https://cli-chat-proxy.grok.com/v1/responses
+    [429]: {"code":"subscription:free-usage-exhausted","error":"You've used all the included free usage for model grok-4.5-build-free for now. Usage resets over a rolling 24-hour window — tokens (actual/limit): 1163843/1000000. Upgrade to a Grok subscription for higher limits: https://grok.com/supergrok"}
+[03:58:49] ⚠️  [AUTH] Linda Phillips locked modelLock_grok-4.5-low for 2s [429]
+❌ grok-cli [429]: [429]: {"code":"subscription:free-usage-exhausted","error":"You've used all the included free usage 
+[03:58:49] ⚠️  [FALLBACK] ⇄ ACC:Linda Phillips UNAVAILABLE (429) → NEXT ACCOUNT
+[03:58:49] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 292 MSG · 127 TOOL · THINK:medium · ACC:Alexander Klein
+[RTK] saved 48917B / 364565B (13.4%) via [grep,dedup-log,find,ls] hits=25
+[03:58:49] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:59:01] ⚪ 📊 DONE 11828ms · TTFT 4554ms · IN 292134 · OUT 638
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:59:02] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 297 MSG · 127 TOOL · THINK:medium · ACC:Alexander Klein
+[RTK] saved 56589B / 378169B (15.0%) via [grep,dedup-log,find,ls] hits=27
+[03:59:02] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:59:45] ⚪ 📊 DONE 42827ms · TTFT 4273ms · IN 294290 · OUT 3755
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:59:46] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 300 MSG · 127 TOOL · THINK:medium · ACC:Alexander Klein
+[RTK] saved 56589B / 378306B (15.0%) via [grep,dedup-log,find,ls] hits=27
+[03:59:46] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[03:59:58] ⚪ 📊 DONE 11305ms · TTFT 8714ms · IN 297962 · OUT 174
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[03:59:58] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 303 MSG · 127 TOOL · THINK:medium · ACC:Alexander Klein
+[RTK] saved 56589B / 379182B (14.9%) via [grep,dedup-log,find,ls] hits=27
+[03:59:58] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:00:09] ⚪ 📊 DONE 10248ms · TTFT 3209ms · IN 298464 · OUT 542
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:00:09] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 308 MSG · 127 TOOL · THINK:medium · ACC:Alexander Klein
+[RTK] saved 56589B / 379924B (14.9%) via [grep,dedup-log,find,ls] hits=27
+[04:00:09] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:00:19] ⚪ ✗ ERROR 429 · grok-cli/grok-4.5-low · 9930ms
+    URL: https://cli-chat-proxy.grok.com/v1/responses
+    [429]: {"code":"subscription:free-usage-exhausted","error":"You've used all the included free usage for model grok-4.5-build-free for now. Usage resets over a rolling 24-hour window — tokens (actual/limit): 1187959/1000000. Upgrade to a Grok subscription for higher limits: https://grok.com/supergrok"}
+[04:00:19] ⚠️  [AUTH] Alexander Klein locked modelLock_grok-4.5-low for 2s [429]
+❌ grok-cli [429]: [429]: {"code":"subscription:free-usage-exhausted","error":"You've used all the included free usage 
+[04:00:19] ⚠️  [FALLBACK] ⇄ ACC:Alexander Klein UNAVAILABLE (429) → NEXT ACCOUNT
+[04:00:19] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 308 MSG · 127 TOOL · THINK:medium · ACC:Denise Woods
+[RTK] saved 56589B / 379924B (14.9%) via [grep,dedup-log,find,ls] hits=27
+[04:00:19] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:00:28] ⚪ 📊 DONE 9074ms · TTFT 5184ms · IN 299159 · OUT 311
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:09:20] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 311 MSG · 127 TOOL · THINK:medium · ACC:Denise Woods
+[RTK] saved 56589B / 379924B (14.9%) via [grep,dedup-log,find,ls] hits=27
+[04:09:20] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:09:35] ⚪ 📊 DONE 15117ms · TTFT 9030ms · IN 300037 · OUT 507
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:09:36] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 314 MSG · 127 TOOL · THINK:medium · ACC:Denise Woods
+[RTK] saved 56589B / 385898B (14.7%) via [grep,dedup-log,find,ls] hits=27
+[04:09:36] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:10:08] ⚪ 📊 DONE 32124ms · TTFT 3184ms · IN 301927 · OUT 2961
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:10:09] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 317 MSG · 127 TOOL · THINK:medium · ACC:Denise Woods
+[RTK] saved 56589B / 386011B (14.7%) via [grep,dedup-log,find,ls] hits=27
+[04:10:09] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:11:18] ⚪ 📊 DONE 69147ms · TTFT 65630ms · IN 304786 · OUT 211
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:11:19] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 319 MSG · 127 TOOL · THINK:medium · ACC:Denise Woods
+[RTK] saved 56589B / 388662B (14.6%) via [grep,dedup-log,find,ls] hits=27
+[04:11:19] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:11:34] ⚪ 📊 DONE 14591ms · TTFT 12459ms · IN 305692 · OUT 154
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:11:35] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 324 MSG · 127 TOOL · THINK:medium · ACC:Melissa Stokes
+[RTK] saved 56589B / 391775B (14.4%) via [grep,dedup-log,find,ls] hits=27
+[04:11:35] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:12:27] ⚪ 📊 DONE 52243ms · TTFT 35502ms · IN 306725 · OUT 1565
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:12:28] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 327 MSG · 127 TOOL · THINK:medium · ACC:Melissa Stokes
+[RTK] saved 56589B / 391882B (14.4%) via [grep,dedup-log,find,ls] hits=27
+[04:12:28] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:12:33] ⚪ 📊 DONE 5025ms · TTFT 3717ms · IN 308200 · OUT 107
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:12:34] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 329 MSG · 127 TOOL · THINK:medium · ACC:Melissa Stokes
+[RTK] saved 56589B / 391911B (14.4%) via [grep,dedup-log,find,ls] hits=27
+[04:12:34] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:12:40] ⚪ 📊 DONE 6815ms · TTFT 3484ms · IN 308324 · OUT 289
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:16:10] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 332 MSG · 127 TOOL · THINK:medium · ACC:Melissa Stokes
+[RTK] saved 56589B / 391911B (14.4%) via [grep,dedup-log,find,ls] hits=27
+[04:16:10] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:16:21] ⚪ 📊 DONE 10608ms · TTFT 6184ms · IN 309154 · OUT 376
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:16:22] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 336 MSG · 127 TOOL · THINK:medium · ACC:Melissa Stokes
+[RTK] saved 57558B / 402064B (14.3%) via [grep,dedup-log,find,ls] hits=29
+[04:16:22] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:16:32] ⚪ 📊 DONE 10346ms · TTFT 4813ms · IN 312062 · OUT 372
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:16:33] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 339 MSG · 127 TOOL · THINK:medium · ACC:Ian Stout
+[RTK] saved 57559B / 404075B (14.2%) via [grep,dedup-log,find,ls] hits=30
+[04:16:33] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:18:50] ⚪ 📊 DONE 137318ms · TTFT 99121ms · IN 312821 · OUT 3801
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:18:51] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 342 MSG · 127 TOOL · THINK:medium · ACC:Ian Stout
+[RTK] saved 57559B / 404583B (14.2%) via [grep,dedup-log,find,ls] hits=30
+[04:18:51] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:18:58] ⚪ 📊 DONE 6837ms · TTFT 4339ms · IN 316811 · OUT 244
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:18:59] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 344 MSG · 127 TOOL · THINK:medium · ACC:Ian Stout
+[RTK] saved 57559B / 407372B (14.1%) via [grep,dedup-log,find,ls] hits=30
+[04:18:59] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:19:04] ⚪ 📊 DONE 5338ms · TTFT 4096ms · IN 317873 · OUT 77
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:19:05] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 346 MSG · 127 TOOL · THINK:medium · ACC:Ian Stout
+[RTK] saved 57559B / 412918B (13.9%) via [grep,dedup-log,find,ls] hits=30
+[04:19:05] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:19:11] ⚪ 📊 DONE 6538ms · TTFT 4010ms · IN 319503 · OUT 266
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:19:12] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 348 MSG · 127 TOOL · THINK:medium · ACC:Ian Stout
+[RTK] saved 57559B / 413073B (13.9%) via [grep,dedup-log,find,ls] hits=30
+[04:19:12] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:19:22] ⚪ ✗ ERROR 429 · grok-cli/grok-4.5-low · 10297ms
+    URL: https://cli-chat-proxy.grok.com/v1/responses
+    [429]: {"code":"subscription:free-usage-exhausted","error":"You've used all the included free usage for model grok-4.5-build-free for now. Usage resets over a rolling 24-hour window — tokens (actual/limit): 1271396/1000000. Upgrade to a Grok subscription for higher limits: https://grok.com/supergrok"}
+[04:19:22] ⚠️  [AUTH] Ian Stout locked modelLock_grok-4.5-low for 2s [429]
+❌ grok-cli [429]: [429]: {"code":"subscription:free-usage-exhausted","error":"You've used all the included free usage 
+[04:19:22] ⚠️  [FALLBACK] ⇄ ACC:Ian Stout UNAVAILABLE (429) → NEXT ACCOUNT
+[04:19:22] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 348 MSG · 127 TOOL · THINK:medium · ACC:Christopher Murphy
+[RTK] saved 57559B / 413073B (13.9%) via [grep,dedup-log,find,ls] hits=30
+[04:19:22] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:19:33] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 1 MSG · THINK:high · ACC:Christopher Murphy
+[04:19:33] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:19:33] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 2 MSG · 127 TOOL · THINK:high · ACC:Christopher Murphy
+[04:19:33] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:19:36] ⚪ 📊 DONE 3473ms · TTFT 964ms · IN 1248 · OUT 237
+[04:19:39] ⚪ 📊 DONE 5845ms · TTFT 3999ms · IN 48542 · OUT 193
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:19:40] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 6 MSG · 127 TOOL · THINK:high · ACC:Christopher Murphy
+[04:19:40] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:19:47] ⚪ 📊 DONE 7184ms · TTFT 2105ms · IN 49318 · OUT 484
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:19:48] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 12 MSG · 127 TOOL · THINK:high · ACC:Christopher Murphy
+[RTK] saved 873B / 8688B (10.0%) via [grep] hits=1
+[04:19:48] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:19:57] ⚪ 📊 DONE 8937ms · TTFT 2127ms · IN 52011 · OUT 668
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:19:57] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 16 MSG · 127 TOOL · THINK:high · ACC:Cheryl Beltran
+[RTK] saved 873B / 13249B (6.6%) via [grep] hits=1
+[04:19:57] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:20:05] ⚪ 📊 DONE 7974ms · TTFT 4536ms · IN 54374 · OUT 257
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:20:06] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 18 MSG · 127 TOOL · THINK:high · ACC:Cheryl Beltran
+[RTK] saved 873B / 15140B (5.8%) via [grep] hits=1
+[04:20:06] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:20:07] ⚪ 📊 DONE 45227ms · TTFT 43291ms · IN 319787 · OUT 197
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:20:08] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 350 MSG · 127 TOOL · THINK:medium · ACC:Cheryl Beltran
+[RTK] saved 57559B / 413205B (13.9%) via [grep,dedup-log,find,ls] hits=30
+[04:20:08] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:20:14] ⚪ 📊 DONE 6029ms · TTFT 3746ms · IN 320015 · OUT 130
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:20:14] ⚪ ▶ POST gcli/grok-4.5-low → grok-cli/grok-4.5-low · FMT: claude→openai-responses · STREAM · 352 MSG · 127 TOOL · THINK:medium · ACC:Cheryl Beltran
+[RTK] saved 57559B / 413234B (13.9%) via [grep,dedup-log,find,ls] hits=30
+[04:20:14] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:20:18] ⚪ 📊 DONE 11872ms · TTFT 5978ms · IN 55280 · OUT 563
+[04:20:22] ⚪ 📊 DONE 7732ms · TTFT 3275ms · IN 320160 · OUT 273
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:26:42] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 21 MSG · 127 TOOL · THINK:high · ACC:Cheryl Beltran
+[RTK] saved 873B / 15140B (5.8%) via [grep] hits=1
+[04:26:42] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:26:53] ⚪ 📊 DONE 10475ms · TTFT 4952ms · IN 56159 · OUT 507
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:26:53] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 24 MSG · 127 TOOL · THINK:high · ACC:Caitlyn Morales
+[RTK] saved 873B / 15492B (5.6%) via [grep] hits=1
+[04:26:53] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:27:00] ⚪ 📊 DONE 6815ms · TTFT 4137ms · IN 56808 · OUT 255
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:27:00] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 26 MSG · 127 TOOL · THINK:high · ACC:Caitlyn Morales
+[RTK] saved 873B / 18137B (4.8%) via [grep] hits=1
+[04:27:00] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:27:08] ⚪ 📊 DONE 7783ms · TTFT 2237ms · IN 57605 · OUT 424
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:27:09] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 28 MSG · 127 TOOL · THINK:high · ACC:Caitlyn Morales
+[RTK] saved 873B / 19093B (4.6%) via [grep] hits=1
+[04:27:09] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:27:13] ⚪ 📊 DONE 3867ms · TTFT 2227ms · IN 58152 · OUT 178
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:40:55] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 31 MSG · 127 TOOL · THINK:high · ACC:Caitlyn Morales
+[RTK] saved 873B / 19093B (4.6%) via [grep] hits=1
+[04:40:55] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:41:08] ⚪ 📊 DONE 13253ms · TTFT 2659ms · IN 58893 · OUT 811
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:41:10] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 38 MSG · 127 TOOL · THINK:high · ACC:Caitlyn Morales
+[RTK] saved 2723B / 21429B (12.7%) via [grep] hits=2
+[04:41:10] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:41:34] ⚪ 📊 DONE 24428ms · TTFT 1930ms · IN 59550 · OUT 1600
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:41:35] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 44 MSG · 127 TOOL · THINK:high · ACC:Ashley Shepard
+[RTK] saved 2723B / 28273B (9.6%) via [grep] hits=2
+[04:41:35] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:41:42] ⚪ 📊 DONE 7036ms · TTFT 4553ms · IN 62882 · OUT 234
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:41:43] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 51 MSG · 127 TOOL · THINK:high · ACC:Ashley Shepard
+[RTK] saved 2723B / 37126B (7.3%) via [grep] hits=2
+[04:41:43] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:41:58] ⚪ 📊 DONE 15024ms · TTFT 11757ms · IN 65934 · OUT 329
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:41:59] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 55 MSG · 127 TOOL · THINK:high · ACC:Ashley Shepard
+[RTK] saved 2723B / 41265B (6.6%) via [grep] hits=2
+[04:41:59] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:42:16] ⚪ 📊 DONE 17253ms · TTFT 1942ms · IN 67614 · OUT 1149
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:42:17] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 58 MSG · 127 TOOL · THINK:high · ACC:Ashley Shepard
+[RTK] saved 4547B / 44018B (10.3%) via [grep,ls] hits=3
+[04:42:17] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:42:24] ⚪ 📊 DONE 7637ms · TTFT 2265ms · IN 68597 · OUT 551
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:42:25] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 63 MSG · 127 TOOL · THINK:high · ACC:Ashley Shepard
+[RTK] saved 4547B / 45483B (10.0%) via [grep,ls] hits=3
+[04:42:25] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:42:55] ⚪ 📊 DONE 30511ms · TTFT 13086ms · IN 69811 · OUT 1513
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:42:56] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 65 MSG · 127 TOOL · THINK:high · ACC:Kevin Santos
+[RTK] saved 4547B / 49257B (9.2%) via [grep,ls] hits=3
+[04:42:56] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:43:52] ⚪ 📊 DONE 55348ms · TTFT 5618ms · IN 71609 · OUT 4236
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:43:52] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 68 MSG · 127 TOOL · THINK:high · ACC:Kevin Santos
+[RTK] saved 4547B / 49405B (9.2%) via [grep,ls] hits=3
+[04:43:52] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:44:08] ⚪ 📊 DONE 15943ms · TTFT 2280ms · IN 75198 · OUT 1580
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:44:08] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 72 MSG · 127 TOOL · THINK:high · ACC:Kevin Santos
+[RTK] saved 4547B / 49721B (9.1%) via [grep,ls] hits=3
+[04:44:08] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:44:39] ⚪ 📊 DONE 30190ms · TTFT 6144ms · IN 76727 · OUT 2379
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:44:39] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 76 MSG · 127 TOOL · THINK:high · ACC:Kevin Santos
+[RTK] saved 4547B / 51896B (8.8%) via [grep,ls] hits=3
+[04:44:39] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:44:57] ⚪ 📊 DONE 17899ms · TTFT 3112ms · IN 79565 · OUT 1266
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:44:58] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 80 MSG · 127 TOOL · THINK:high · ACC:Kevin Santos
+[RTK] saved 4547B / 55037B (8.3%) via [grep,ls] hits=3
+[04:44:58] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:45:11] ⚪ 📊 DONE 12755ms · TTFT 7441ms · IN 81647 · OUT 331
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:45:12] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 83 MSG · 127 TOOL · THINK:high · ACC:Mariah Cannon
+[RTK] saved 4547B / 55066B (8.3%) via [grep,ls] hits=3
+[04:45:12] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:45:21] ⚪ 📊 DONE 9904ms · TTFT 6060ms · IN 81945 · OUT 369
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:48:48] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 86 MSG · 127 TOOL · THINK:high · ACC:Mariah Cannon
+[RTK] saved 4547B / 55066B (8.3%) via [grep,ls] hits=3
+[04:48:48] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:48:59] ⚪ 📊 DONE 10864ms · TTFT 2455ms · IN 83085 · OUT 781
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:49:00] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 91 MSG · 127 TOOL · THINK:high · ACC:Mariah Cannon
+[RTK] saved 4547B / 59978B (7.6%) via [grep,ls] hits=3
+[04:49:00] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:49:38] ⚪ 📊 DONE 38224ms · TTFT 2424ms · IN 85318 · OUT 3939
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:49:39] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 94 MSG · 127 TOOL · THINK:high · ACC:Mariah Cannon
+[RTK] saved 4547B / 60136B (7.6%) via [grep,ls] hits=3
+[04:49:39] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:49:45] ⚪ 📊 DONE 6464ms · TTFT 2422ms · IN 88837 · OUT 299
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:49:46] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 98 MSG · 127 TOOL · THINK:high · ACC:Mariah Cannon
+[RTK] saved 4547B / 61309B (7.4%) via [grep,ls] hits=3
+[04:49:46] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:49:50] ⚪ 📊 DONE 3616ms · TTFT 2039ms · IN 89409 · OUT 134
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:51:35] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 101 MSG · 127 TOOL · THINK:high · ACC:Stephanie Kramer
+[RTK] saved 4547B / 61309B (7.4%) via [grep,ls] hits=3
+[04:51:35] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:51:48] ⚪ 📊 DONE 13042ms · TTFT 9764ms · IN 90015 · OUT 266
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:51:48] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 107 MSG · 127 TOOL · THINK:high · ACC:Stephanie Kramer
+[RTK] saved 4547B / 68743B (6.6%) via [grep,ls] hits=3
+[04:51:48] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:51:55] ⚪ 📊 DONE 6703ms · TTFT 3017ms · IN 92794 · OUT 233
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:51:55] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 109 MSG · 127 TOOL · THINK:high · ACC:Stephanie Kramer
+[RTK] saved 4547B / 72740B (6.3%) via [grep,ls] hits=3
+[04:51:55] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:52:44] ⚪ 📊 DONE 48933ms · TTFT 5556ms · IN 94257 · OUT 4371
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:52:45] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 114 MSG · 127 TOOL · THINK:high · ACC:Stephanie Kramer
+[RTK] saved 4547B / 73056B (6.2%) via [grep,ls] hits=3
+[04:52:45] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:52:54] ⚪ 📊 DONE 9484ms · TTFT 2841ms · IN 98295 · OUT 555
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:52:57] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 116 MSG · 127 TOOL · THINK:high · ACC:Stephanie Kramer
+[RTK] saved 4547B / 77442B (5.9%) via [grep,ls] hits=3
+[04:52:57] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:53:11] ⚪ 📊 DONE 13704ms · TTFT 2434ms · IN 100323 · OUT 808
+[ClaudeHeaders] Cached 14 identity headers from Claude Code client
+[04:53:12] ⚪ ▶ POST gcli/grok-4.5-high → grok-cli/grok-4.5-high · FMT: claude→openai-responses · STREAM · 118 MSG · 127 TOOL · THINK:high · ACC:Spencer Rodriguez
+[RTK] saved 4547B / 77540B (5.9%) via [grep,ls] hits=3
+[04:53:12] ⚪ ⚙ CAVEMAN:ultra · PONYTAIL:ultra
+[04:53:27] ⚪ 📊 DONE 15210ms · TTFT 12703ms · IN 101034 · OUT 216
+OAuth GET error: Error: Grok CLI device code request failed: {"error":"slow_down","error_description":"Too many device code requests. Please wait and try again."}
+    at Object.requestDeviceCode (.next/server/chunks/5491.js:1:16827)
+    at async q (.next/server/chunks/5491.js:1:40405)
+    at async k (.next/server/app/api/oauth/[provider]/[action]/route.js:1:12924)
+    at async j (.next/server/app/api/oauth/[provider]/[action]/route.js:1:5701)
+    at async h (.next/server/app/api/oauth/[provider]/[action]/route.js:1:6713)
+    at async Module.y (.next/server/app/api/oauth/[provider]/[action]/route.js:1:7809)

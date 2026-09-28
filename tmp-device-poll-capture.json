@@ -1,0 +1,46 @@
+{
+  "steps": [
+    {
+      "name": "login",
+      "status": 401,
+      "body": "{\"error\":\"Invalid password. 4 attempt(s) left before lockout.\",\"remainingBeforeLock\":4}",
+      "cookies": {}
+    },
+    {
+      "name": "auth_status",
+      "status": 200,
+      "body": "{\"requireLogin\":true,\"authMode\":\"password\",\"oidcConfigured\":false,\"oidcLoginLabel\":\"Sign in with OIDC\",\"hasPassword\":true,\"displayName\":\"Password user\",\"loginMethod\":\"Password\",\"oidcName\":null,\"oidcEmail\":null,\"oidcLogin\":false}"
+    }
+  ],
+  "device_code_response": {
+    "error": "Unauthorized"
+  },
+  "poll1": {
+    "error": "Unauthorized"
+  },
+  "poll_no_verifier": {
+    "status": 401,
+    "body": "{\"error\":\"Unauthorized\"}"
+  },
+  "poll_bad_code": {
+    "status": 401,
+    "body": "{\"error\":\"Unauthorized\"}"
+  },
+  "poll2": {
+    "error": "Unauthorized"
+  },
+  "gcli_alias": {
+    "status": 401,
+    "body": "{\"error\":\"Unauthorized\"}"
+  },
+  "manual_approve": {
+    "user_code": null,
+    "verification_uri": null,
+    "verification_uri_complete": null,
+    "expires_in": 0,
+    "interval": 5,
+    "device_code_len": 0,
+    "device_code_prefix": "",
+    "note": "Approve this user_code in browser, then we can poll again if still valid"
+  }
+}
