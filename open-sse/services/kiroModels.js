@@ -252,8 +252,10 @@ export async function resolveKiroModels(credentials, options = {}) {
   try {
     raw = await fetchKiroCatalogRaw(credentials, options.signal);
   } catch (err) {
-    if (err && err.status === 401 && credentials.refreshToken) {
-      options.log?.info?.("KIRO_MODELS", "Got 401 from Kiro; refreshing token");
+    // Try refresh on 401 OR 403 (403 = token invalid, but refresh might still work)
+    if ((err && (err.status === 401 || err.status === 403)) && credentials.refreshToken) {
+      const statusLabel = err.status === 401 ? "401" : "403 (token invalid)";
+      options.log?.info?.("KIRO_MODELS", `Got ${statusLabel} from Kiro; attempting token refresh`);
       const refreshed = await refreshKiroToken(
         credentials.refreshToken,
         credentials.providerSpecificData,
