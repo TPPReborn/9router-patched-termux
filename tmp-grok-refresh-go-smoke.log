@@ -1,4 +1,0 @@
-{"dataDir":"/data/data/com.termux/files/usr/var/lib/9router","db":"/data/data/com.termux/files/usr/var/lib/9router/db/data.sqlite","dryRun":false,"dueOnly":false,"jobs":2,"limit":2,"phase":"start","total":129,"workers":2}
-{"id":"1b8641a3-5d2a-451f-9520-a96fec432546","email":"etvvv7omot4c6d2n@jmola.my.id","status":"refreshed","beforeExp":"2026-07-23T22:48:01.213Z","afterExp":"2026-07-23T23:09:17.149Z","rotated":true,"persist":"cas_ok"}
-{"id":"f4b232b7-bac3-4e2e-972b-034523980142","email":"kwufhk5th882zqas@jmola.my.id","status":"refreshed","beforeExp":"2026-07-23T22:47:34.729Z","afterExp":"2026-07-23T23:09:17.171Z","rotated":true,"persist":"cas_ok"}
-{"phase":"done","summary":{"fail":0,"ok":2,"refreshed":2,"same":0,"skipped":0}}
