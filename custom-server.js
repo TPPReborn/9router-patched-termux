@@ -70,6 +70,22 @@ http.createServer = (...args) => {
     req.headers["x-9r-real-ip"] = ip;
     req.headers["x-9r-peer-token"] = PEER_TOKEN;
     if (viaProxy) req.headers["x-9r-via-proxy"] = "1";
+    // OpenCode Free spoofing: present as a genuine opencode CLI client.
+    // Upstream rejects the free tier unless these headers look native.
+    if (!req.headers["user-agent"] || !/opencode\/\d+\./i.test(req.headers["user-agent"])) {
+      req.headers["user-agent"] = "opencode/1.18.31";
+    }
+    if (!req.headers["x-opencode-client"]) req.headers["x-opencode-client"] = "cli";
+    if (!req.headers["x-opencode-project"]) req.headers["x-opencode-project"] = "global";
+    if (!req.headers["x-opencode-session"]) {
+      // ses_ + 12 hex (inverted timestamp*4096+counter) + 14 base62, per upstream format
+      const ts = BigInt(Date.now());
+      const hex = (~(ts * 4096n + 1n)) & 0xFFFFFFFFFFFFn;
+      const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+      let rand = "";
+      for (let i = 0; i < 14; i++) rand += chars[crypto.randomBytes(1)[0] % 62];
+      req.headers["x-opencode-session"] = `ses_${hex.toString(16).padStart(12, "0")}${rand}`;
+    }
     return handler(req, res);
   };
   const server = origCreate(...rest, wrapped);
