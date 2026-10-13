@@ -24,7 +24,7 @@ function parseToolArguments(value) {
   }
 }
 
-function openAICompletionToClaudeMessage(responseBody) {
+export function openAICompletionToClaudeMessage(responseBody) {
   if (!responseBody?.choices?.[0]) return responseBody;
   const choice = responseBody.choices[0];
   const message = choice.message || {};

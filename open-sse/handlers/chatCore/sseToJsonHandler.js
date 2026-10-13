@@ -356,9 +356,18 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
     // lost on the non-streaming return path. Inlined (not imported from
     // nonStreamingHandler.js) to avoid a circular import: nonStreamingHandler
     // already imports parseSSEToOpenAIResponse from this module.
-    const finalBody = sourceFormat === FORMATS.OPENAI_RESPONSES
-      ? chatCompletionToResponses(parsed, customToolNames)
-      : parsed;
+    let finalBody = parsed;
+    if (sourceFormat === FORMATS.OPENAI_RESPONSES) {
+      finalBody = chatCompletionToResponses(parsed, customToolNames);
+    } else if (sourceFormat === FORMATS.CLAUDE) {
+      // A Claude-format client (e.g. Claude Code) forced this provider to stream
+      // but wants JSON back. parseSSEToOpenAIResponse yields a Chat Completions
+      // body; convert it to an Anthropic `message` so the client does not receive
+      // a foreign shape (and its SDK does not fail parsing). Lazy import breaks
+      // the cycle: nonStreamingHandler statically imports this module.
+      const { openAICompletionToClaudeMessage } = await import("./nonStreamingHandler.js");
+      finalBody = openAICompletionToClaudeMessage(parsed);
+    }
 
     return { success: true, response: new Response(JSON.stringify(restoreToolNames(finalBody, toolNameMap)), { headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } }) };
   } catch (err) {
