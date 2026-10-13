@@ -1,5 +1,5 @@
 // Stream handler with disconnect detection - shared for all providers
-import { STREAM_STALL_TIMEOUT_MS } from "../config/runtimeConfig.js";
+import { STREAM_STALL_TIMEOUT_MS, STREAM_FIRST_CHUNK_TIMEOUT_MS } from "../config/runtimeConfig.js";
 import { dbg, isDebugEnabled } from "./debugLog.js";
 
 // Get HH:MM:SS timestamp
@@ -197,6 +197,7 @@ export function pipeWithDisconnect(providerResponse, transformStream, streamCont
   let chunkCount = 0;
   let totalBytes = 0;
   let lastChunkAt = Date.now();
+  let firstChunkSeen = false;
   let abortMessage = "upstream connection lost";
   const t0 = Date.now();
   const tag = "STREAM";
@@ -205,13 +206,18 @@ export function pipeWithDisconnect(providerResponse, transformStream, streamCont
   };
   const armStall = () => {
     clearStall();
+    // Pre-first-byte uses the (shorter) first-chunk budget so a dead upstream
+    // fails fast instead of holding the client for the full stall window;
+    // once bytes flow, the per-chunk stall budget applies.
+    const timeout = firstChunkSeen ? stallTimeoutMs : STREAM_FIRST_CHUNK_TIMEOUT_MS;
+    const phase = firstChunkSeen ? "stall" : "first-chunk";
     stallTimer = setTimeout(() => {
       stallTimer = null;
-      abortMessage = "stream stall timeout";
-      dbg(tag, `STALL TIMEOUT ${stallTimeoutMs}ms | chunks=${chunkCount} | bytes=${totalBytes} | sinceLast=${Date.now() - lastChunkAt}ms`);
-      streamController.handleError?.(new Error("stream stall timeout"));
+      abortMessage = phase === "stall" ? "stream stall timeout" : "first token timeout";
+      dbg(tag, `${phase.toUpperCase()} TIMEOUT ${timeout}ms | chunks=${chunkCount} | bytes=${totalBytes} | sinceLast=${Date.now() - lastChunkAt}ms`);
+      streamController.handleError?.(new Error(abortMessage));
       streamController.abort?.();
-    }, stallTimeoutMs);
+    }, timeout);
   };
 
   // Wrap controller so every termination path clears the stall timer.
@@ -233,6 +239,7 @@ export function pipeWithDisconnect(providerResponse, transformStream, streamCont
   const upstreamTap = new TransformStream({
     transform(chunk, controller) {
       chunkCount++;
+      firstChunkSeen = true;
       const sz = chunk?.byteLength || chunk?.length || 0;
       totalBytes += sz;
       const now = Date.now();

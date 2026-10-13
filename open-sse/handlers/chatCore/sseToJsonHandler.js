@@ -6,6 +6,7 @@ import { FORMATS } from "../../translator/formats.js";
 import { PROVIDERS } from "../../config/providers.js";
 import { buildRequestDetail, extractRequestConfig, saveUsageStats, formatDoneLine } from "./requestDetail.js";
 import { ROLE, RESPONSES_ITEM } from "../../translator/schema/index.js";
+import { readBodyWithStall } from "../../utils/bodyRead.js";
 
 // Responses-API providers (e.g. codex) may emit SSE without content-type + use Responses output shape
 const isResponsesProvider = (p) => PROVIDERS[p]?.format === FORMATS.OPENAI_RESPONSES;
@@ -291,7 +292,19 @@ export async function handleForcedSSEToJson({ providerResponse, sourceFormat, ta
 
   // Standard Chat Completions SSE path
   try {
-    const sseText = await providerResponse.text();
+    // Watchdog: text() has no timeout — a silent upstream would hang the
+    // forced-stream aggregation forever. Convert a mid-body hang into a
+    // retryable 504 for the combo/account fallback loops.
+    let sseText;
+    try {
+      sseText = await readBodyWithStall(providerResponse, { label: `SSE body from ${provider}` });
+    } catch (err) {
+      if (err?.name === "BodyReadTimeoutError") {
+        appendLog({ status: `FAILED ${HTTP_STATUS.GATEWAY_TIMEOUT}` });
+        return createErrorResult(HTTP_STATUS.GATEWAY_TIMEOUT, err.message);
+      }
+      throw err;
+    }
     const parsed = parseSSEToOpenAIResponse(sseText, model);
     if (!parsed) return createErrorResult(HTTP_STATUS.BAD_GATEWAY, "Invalid SSE response for non-streaming request");
     if (parsed.error) {

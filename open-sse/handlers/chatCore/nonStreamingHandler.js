@@ -11,6 +11,7 @@ import { unwrapClineEnvelope } from "../../shared/clineEnvelope.js";
 import { buildRequestDetail, extractRequestConfig, extractUsageFromResponse, saveUsageStats, formatDoneLine } from "./requestDetail.js";
 import { appendRequestLog, saveRequestDetail } from "@/lib/usageDb.js";
 import { decloakToolNames } from "../../utils/claudeCloaking.js";
+import { readBodyWithStall } from "../../utils/bodyRead.js";
 import { restoreToolNames } from "../../utils/opencodeFingerprint.js";
 import { ROLE, RESPONSES_ITEM } from "../../translator/schema/index.js";
 
@@ -289,8 +290,21 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
   const contentType = providerResponse.headers.get("content-type") || "";
   let responseBody;
 
+  // Watchdog: response.text()/.json() have no timeout once headers arrived —
+  // a silent upstream would hang the request forever. readBodyWithStall
+  // converts a mid-body hang into a retryable 504 (combo/account fallback).
   if (contentType.includes("text/event-stream")) {
-    const sseText = await providerResponse.text();
+    let sseText;
+    try {
+      sseText = await readBodyWithStall(providerResponse, { label: `SSE body from ${provider}` });
+    } catch (err) {
+      if (err?.name === "BodyReadTimeoutError") {
+        appendLog({ status: `FAILED ${HTTP_STATUS.GATEWAY_TIMEOUT}` });
+        return createErrorResult(HTTP_STATUS.GATEWAY_TIMEOUT, err.message);
+      }
+      appendLog({ status: `FAILED ${HTTP_STATUS.BAD_GATEWAY}` });
+      return createErrorResult(HTTP_STATUS.BAD_GATEWAY, `Failed to read response from ${provider}`);
+    }
     const parsed = parseSSEToOpenAIResponse(sseText, model);
     if (!parsed) {
       appendLog({ status: `FAILED ${HTTP_STATUS.BAD_GATEWAY}` });
@@ -299,8 +313,12 @@ export async function handleNonStreamingResponse({ providerResponse, provider, m
     responseBody = parsed;
   } else {
     try {
-      responseBody = await providerResponse.json();
+      responseBody = JSON.parse(await readBodyWithStall(providerResponse, { label: `JSON body from ${provider}` }));
     } catch (err) {
+      if (err?.name === "BodyReadTimeoutError") {
+        appendLog({ status: `FAILED ${HTTP_STATUS.GATEWAY_TIMEOUT}` });
+        return createErrorResult(HTTP_STATUS.GATEWAY_TIMEOUT, err.message);
+      }
       appendLog({ status: `FAILED ${HTTP_STATUS.BAD_GATEWAY}` });
       console.error(`[ChatCore] Failed to parse JSON from ${provider}:`, err.message);
       return createErrorResult(HTTP_STATUS.BAD_GATEWAY, `Invalid JSON response from ${provider}`);

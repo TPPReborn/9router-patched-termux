@@ -3,7 +3,8 @@
  */
 
 import { checkFallbackError, formatRetryAfter } from "./accountFallback.js";
-import { unavailableResponse } from "../utils/error.js";
+import { unavailableResponse, errorResponse } from "../utils/error.js";
+import { HTTP_STATUS, COMBO_FIRST_BYTE_TIMEOUT_MS } from "../config/runtimeConfig.js";
 import { getCapabilitiesForModel } from "../providers/capabilities.js";
 import { extractTextContent } from "../translator/formats/gemini.js";
 
@@ -266,6 +267,207 @@ export function getComboModelsFromData(modelStr, combosData) {
 }
 
 /**
+ * Wrap one combo attempt with a pre-first-byte guard.
+ *
+ * The attempt resolves the full upstream `Response` (200 + headers usually
+ * arrives), then reads bytes from its SSE body tee'd into a buffer — without
+ * consuming the client's copy. Three outcomes before the guard budget:
+ *
+ * - a real data chunk / token arrives → success path: return the response
+ *   with a body splice that replays the buffered bytes, then continues
+ *   live. Byte-lossless, ordering preserved.
+ * - a terminal error (stream `error`/`err` frame, HTTP error JSON frame, or
+ *   an immediate empty end) arrives → translate to a combo-fallback signal.
+ * - nothing arrives within COMBO_FIRST_BYTE_TIMEOUT_MS → same fallback signal.
+ *
+ * When the guard trips, nothing was forwarded to the client yet, so the next
+ * combo model can safely serve the request. The hung upstream Response is
+ * cancelled to free the socket.
+ */
+export async function attemptWithFirstByteGuard(body, modelStr, handleSingleModel, log, guardMsOverride) {
+  const guardMs = typeof guardMsOverride === "number" && guardMsOverride > 0
+    ? guardMsOverride
+    : COMBO_FIRST_BYTE_TIMEOUT_MS;
+  let result;
+  try {
+    result = await handleSingleModel(body, modelStr);
+  } catch (err) {
+    // Preserve existing behavior: sync throws go to the loop's catch.
+    throw err;
+  }
+  // Only SSE bodies are worth probing: JSON bodies are fully materialised by
+  // the handlers before the Response exists, so there is nothing to wait for.
+  const contentType = (result && result.headers && typeof result.headers.get === "function")
+    ? (result.headers.get("content-type") || "")
+    : "";
+  if (!result || !result.ok || !contentType.includes("text/event-stream") ||
+      !result.body || typeof result.body.getReader !== "function") {
+    return result;
+  }
+
+  // Single reader over the real body (no tee — an unread tee branch would
+  // buffer the whole upstream stream in memory). Bytes read by the probe are
+  // replayed to the client before the live stream continues, so the splice is
+  // byte-lossless and ordering-preserving.
+  const reader = result.body.getReader();
+  const decoder = new TextDecoder();
+  const buffered = [];          // Uint8Array chunks already consumed by the probe
+  let textBuf = "";             // decoded view for classification only
+  let inFlight = null;          // outstanding reader.read() (survives a lost race)
+  let held = null;              // resolved-but-unconsumed read result
+  let seenLive = false;
+  let terminalReason = null;
+  let sawDone = false;
+
+  const startRead = () => {
+    if (!inFlight) {
+      inFlight = reader.read().then(
+        (r) => { inFlight = null; held = r; return r; },
+        (e) => { inFlight = null; throw e; },
+      );
+    }
+    return inFlight;
+  };
+  const drain = async () => {
+    if (held) { const r = held; held = null; return r; }
+    await startRead();
+    const r = held; held = null;
+    return r;
+  };
+
+  // Terminal states that CANNOT produce a valid answer: in-band transport
+  // errors (HTTP error JSON frames) or a clean end with zero data. Heartbeats,
+  // comments, usage-only and metadata frames are NOT proof of failure.
+  const classifyTerminal = (text) => {
+    for (const line of String(text || "").split("\n")) {
+      const t = line.trim();
+      if (!t.startsWith("data:")) continue;
+      const payload = t.slice(5).trim();
+      if (!payload || payload === "[DONE]") continue;
+      let obj = null;
+      try { obj = JSON.parse(payload); } catch { continue; }
+      if (!obj || typeof obj !== "object") continue;
+      if (obj.error) return `upstream error frame (${summarizeErrorPayload(obj)})`;
+      if ((obj.type === "response.failed" || obj.type === "response.error") && obj.response?.error) {
+        return `upstream error frame (${summarizeErrorPayload(obj.response.error)})`;
+      }
+      if (obj.type === "error") return `upstream error frame (${summarizeErrorPayload(obj.error || obj)})`;
+    }
+    return null;
+  };
+
+  try {
+    const deadline = Date.now() + guardMs;
+    for (;;) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) break;
+      let timerId = null;
+      const timeoutSentinel = {};
+      const timeoutPromise = new Promise((resolve) => {
+        timerId = setTimeout(() => resolve(timeoutSentinel), remaining);
+      });
+      let chunk;
+      try {
+        chunk = await Promise.race([startRead(), timeoutPromise]);
+      } finally {
+        clearTimeout(timerId);
+      }
+      if (chunk === timeoutSentinel) break; // in-flight read survives for replay
+      // Consume the result the handler stored in `held`.
+      const r = held; held = null;
+      if (r.done) { sawDone = true; break; }
+      if (!r.value || r.value.byteLength === 0) continue;
+      buffered.push(r.value);
+      textBuf += decoder.decode(r.value, { stream: true });
+      // Error frames first: an error frame IS a data payload, so the live
+      // check alone would happily commit a poisoned stream.
+      const terminal = classifyTerminal(textBuf);
+      if (terminal) { terminalReason = terminal; break; }
+      if (hasLiveData(textBuf)) { seenLive = true; break; }
+    }
+  } catch (err) {
+    terminalReason = terminalReason || `probe read failed (${err?.message || String(err)})`;
+  }
+
+  const fail = (reason) => {
+    try { reader.cancel().catch(() => {}); } catch { /* noop */ }
+    return { __comboFirstByteFailure: true, reason };
+  };
+  if (terminalReason) return fail(terminalReason);
+  if (seenLive) return buildReplayResponse();
+  if (sawDone && !hasLiveData(textBuf)) {
+    return fail("stream ended without any data");
+  }
+
+  const finish = () => {
+    try { return decoder.decode(); } catch { return ""; }
+  };
+  textBuf += finish();
+  if (!sawDone && textBuf.trim() === "") {
+    return fail("no bytes from upstream within guard window");
+  }
+  // Timed out with only comments/metadata (no data payload): commit
+  // conservatively — the downstream stall guards still bound the wait if
+  // upstream never sends anything real.
+  return buildReplayResponse();
+
+  // Rebuild the response body: buffered probe bytes, then the live reader.
+  // pull()-driven, so backpressure propagates to the upstream socket.
+  function buildReplayResponse() {
+    let index = 0;
+    const replayStream = new ReadableStream({
+      async pull(controller) {
+        if (index < buffered.length) { controller.enqueue(buffered[index++]); return; }
+        try {
+          const r = await drain();
+          if (r.done) { controller.close(); return; }
+          if (r.value) controller.enqueue(r.value);
+        } catch (err) {
+          try { controller.error(err); } catch { /* noop */ }
+        }
+      },
+      cancel(reason) {
+        try { return reader.cancel(reason).catch(() => {}); } catch { return undefined; }
+      },
+    });
+    return new Response(replayStream, {
+      status: result.status,
+      statusText: result.statusText,
+      headers: result.headers,
+    });
+  }
+}
+
+/**
+ * Does the buffered text contain any live upstream data (as opposed to
+ * keep-alive comments, blank lines, or stream-error sentinels)?
+ */
+function hasLiveData(textBuf) {
+  for (const line of String(textBuf || "").split("\n")) {
+    const t = line.trim();
+    if (!t || t.startsWith(":")) continue;              // comment / heartbeat
+    if (t.startsWith("event:")) continue;               // event name only
+    if (!t.startsWith("data:")) return true;            // raw line = data
+    const payload = t.slice(5).trim();
+    if (!payload || payload === "[DONE]") continue;
+    // Any data payload (token, usage, error object, metadata) proves flow.
+    return true;
+  }
+  return false;
+}
+
+function summarizeErrorPayload(obj) {
+  try {
+    const inner = obj?.error ?? obj ?? {};
+    const status = typeof inner?.status === "number" ? `[${inner.status}]` : (typeof obj?.status === "number" ? `[${obj.status}]` : "");
+    const msg = inner?.message || inner?.error || obj?.message || "";
+    return `${status}${status && msg ? " " : ""}${String(msg).slice(0, 120)}`.trim() || "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
+/**
  * Handle combo chat with fallback
  * @param {Object} options
  * @param {Object} options.body - Request body
@@ -277,7 +479,7 @@ export function getComboModelsFromData(modelStr, combosData) {
  * @param {number|string} [options.comboStickyLimit=1] - Requests per combo model before switching
  * @returns {Promise<Response>}
  */
-export async function handleComboChat({ body, models, handleSingleModel, log, comboName, comboStrategy, comboStickyLimit = 1, autoSwitch = true }) {
+export async function handleComboChat({ body, models, handleSingleModel, log, comboName, comboStrategy, comboStickyLimit = 1, autoSwitch = true, firstByteTimeoutMs = undefined }) {
   // Apply rotation strategy if enabled
   let rotatedModels = getRotatedModels(models, comboName, comboStrategy, comboStickyLimit);
 
@@ -299,10 +501,33 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
 
   for (let i = 0; i < rotatedModels.length; i++) {
     const modelStr = rotatedModels[i];
+    // Pre-first-byte guard (streaming only, and only when another model
+    // remains): verify the stream actually carries bytes before committing to
+    // this attempt. Covers three real failure modes — a silent hang (no
+    // byte arrives), an immediate upstream error frame, and an empty/dropped
+    // stream. Safe because nothing has been sent to the client yet, so the
+    // next combo model can serve the identical request.
+    const hasNext = i + 1 < rotatedModels.length;
+    const wantsStream = body?.stream !== false;
     log.info("COMBO", `Trying model ${i + 1}/${rotatedModels.length}: ${modelStr}`);
 
     try {
-      const result = await handleSingleModel(body, modelStr);
+      const result = wantsStream && hasNext
+        ? await attemptWithFirstByteGuard(body, modelStr, handleSingleModel, log, firstByteTimeoutMs)
+        : await handleSingleModel(body, modelStr);
+
+      // Pre-first-byte guard tripped — treated exactly like a 504 fallback.
+      if (result?.__comboFirstByteFailure) {
+        const status = HTTP_STATUS.GATEWAY_TIMEOUT;
+        const { shouldFallback } = checkFallbackError(status, result.reason || "no first byte");
+        if (shouldFallback) {
+          lastError = result.reason || "Stream produced no data";
+          if (!lastStatus) lastStatus = status;
+          log.warn("COMBO", `Model ${modelStr} produced no stream data (${result.reason}), trying next`, { status });
+          continue;
+        }
+        return errorResponse(status, result.reason || "Stream produced no data");
+      }
       
       // Success (2xx) - return response
       if (result.ok) {

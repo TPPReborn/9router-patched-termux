@@ -58,6 +58,12 @@ export const STREAM_FIRST_CHUNK_TIMEOUT_MS = envMs("STREAM_FIRST_CHUNK_TIMEOUT_M
 // Fetch connect timeout: abort if upstream doesn't return response headers within this duration
 export const FETCH_CONNECT_TIMEOUT_MS = envMs("FETCH_CONNECT_TIMEOUT_MS", 60 * 1000);
 
+// Combo pre-first-byte budget: how long handleComboChat waits for the first
+// SSE byte of a streaming attempt before treating it as failed and falling
+// back to the next combo model. Only applies when another model remains.
+// Failure modes caught: silent hang, immediate error frame, empty stream.
+export const COMBO_FIRST_BYTE_TIMEOUT_MS = envMs("COMBO_FIRST_BYTE_TIMEOUT_MS", 45 * 1000);
+
 // Gemini native TTS fetch timeout: abort if Google does not return response headers in time.
 export const GEMINI_NATIVE_TTS_FETCH_TIMEOUT_MS = envMs("GEMINI_NATIVE_TTS_FETCH_TIMEOUT_MS", 45 * 1000);
 
