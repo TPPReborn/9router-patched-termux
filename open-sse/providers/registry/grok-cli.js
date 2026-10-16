@@ -4,6 +4,8 @@
  * Source of truth: official grok binary 0.2.106 (bde89716f6) installed at
  * ~/.grok/bin/grok — strings + embedded docs for auth/headers/endpoints.
  * Wire format: OpenAI Responses API (force stream).
+ * Account/model probes use a current @xai-official/grok release (1.0.44 as of
+ * 2026-10-01; minimum 1.0.13) to avoid HTTP 426 rejections.
  *
  * Distinct from:
  *  - `xai`      → api.x.ai (API key / xAI API OAuth PKCE)

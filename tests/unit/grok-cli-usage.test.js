@@ -272,7 +272,7 @@ describe("getUsageForProvider(grok-cli)", () => {
     expect(billingCall[0]).toContain("/v1/billing");
     expect(billingCall[1].headers.Authorization).toBe("Bearer test-token");
     expect(billingCall[1].headers["X-XAI-Token-Auth"]).toBe("xai-grok-cli");
-    expect(billingCall[1].headers["x-grok-client-version"]).toBe("0.2.106");
+    expect(billingCall[1].headers["x-grok-client-version"]).toBe("0.2.120");
     expect(billingCall[1].headers["x-grok-client-identifier"]).toBe("grok-shell");
     expect(billingCall[1].headers["x-grok-client-mode"]).toBe("headless");
     expect(billingCall[1].headers["x-userid"]).toBe(

@@ -15,6 +15,10 @@ export const GROK_CLI_REFERRER = "grok-build";
 // happens server-side during request execution where it matters.
 export const GROK_CLI_USER_AGENT =
   `grok-shell/${GROK_CLI_VERSION} (linux; aarch64)`;
+// cli-chat-proxy rejects older identities with HTTP 426. Upstream uses a current
+// @xai-official/grok release (1.0.44 as of 2026-10-01; minimum 1.0.13) for
+// account/model probes that benefit from the newer client fingerprint.
+export const GROK_CLI_PAGER_USER_AGENT = `grok-pager/${GROK_CLI_VERSION} grok-shell/${GROK_CLI_VERSION} (linux; aarch64)`;
 
 /**
  * User principal device-code scopes (binary default pack + OIDC core).

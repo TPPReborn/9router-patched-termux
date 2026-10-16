@@ -102,7 +102,7 @@ describe("GrokCliExecutor", () => {
     expect(headers["X-XAI-Token-Auth"]).toBe("xai-grok-cli");
     expect(headers["x-xai-token-auth"]).toBeUndefined();
     expect(headers["x-grok-client-identifier"]).toBe("grok-shell");
-    expect(headers["x-grok-client-version"]).toBe("0.2.106");
+    expect(headers["x-grok-client-version"]).toBe("0.2.120");
     expect(headers["x-grok-client-mode"]).toBe("headless");
     expect(headers["x-grok-session-id"]).toBe("sess-abc");
     expect(headers["x-grok-conv-id"]).toBe("sess-abc");

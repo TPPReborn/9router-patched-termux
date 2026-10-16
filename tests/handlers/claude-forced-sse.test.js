@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { openAICompletionToClaudeMessage } from "../../open-sse/handlers/chatCore/nonStreamingHandler.js";
+import { openAICompletionToClaudeMessage } from "../../open-sse/translator/concerns/claudeMessage.js";
 
 // Regression: a Claude-format client (/v1/messages, stream:false) that hits a
 // forceStream provider (e.g. opencode) receives SSE → JSON via sseToJsonHandler.

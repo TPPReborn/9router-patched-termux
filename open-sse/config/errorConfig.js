@@ -60,6 +60,7 @@ export const ERROR_RULES = [
   // --- Text-based rules (checked first, order = priority) ---
   // Kiro 403 token invalid — skip cooldown, let token refresh handle it
   { text: "bearer token included in the request is invalid", cooldownMs: 0 },
+  { provider: "codex", text: "model is not supported when using codex with a chatgpt account", cooldownMs: MAX_RATE_LIMIT_COOLDOWN_MS },
   { text: "no credentials",           cooldownMs: COOLDOWN.long },
   { text: "request not allowed",      cooldownMs: COOLDOWN.short },
   { text: "improperly formed request", cooldownMs: COOLDOWN.long },
